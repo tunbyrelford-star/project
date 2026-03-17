@@ -1,0 +1,17 @@
+<view class="timeline">
+  <view wx:if="{{!items.length}}" class="timeline__empty">暂无审计记录</view>
+  <view wx:for="{{items}}" wx:key="index" class="timeline__item">
+    <view class="timeline__axis">
+      <view class="timeline__dot"></view>
+      <view class="timeline__line" wx:if="{{index < items.length - 1}}"></view>
+    </view>
+    <view class="timeline__content">
+      <view class="timeline__head">
+        <text class="timeline__action">{{item.action}}</text>
+        <text class="timeline__time">{{item.time}}</text>
+      </view>
+      <view class="timeline__actor">{{item.actor}}</view>
+      <view wx:if="{{item.note}}" class="timeline__note">{{item.note}}</view>
+    </view>
+  </view>
+</view>

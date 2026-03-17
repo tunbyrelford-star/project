@@ -1,0 +1,51 @@
+<sl-page-shell
+  title="Expense Orders"
+  subtitle="Voyage expense orders and amount visibility control"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  showEmpty="{{!loading && !showError && !list.length}}"
+  emptyText="No expense orders"
+  bind:retry="onRetry"
+>
+  <sl-top-filter-bar
+    slot="filter"
+    filters="{{filters}}"
+    activeKey="{{activeStatus}}"
+    showSearch="{{true}}"
+    searchPlaceholder="Expense no / Voyage / Ship"
+    bind:change="onFilterChange"
+    bind:search="onSearch"
+  />
+
+  <view class="condition-row">
+    <picker mode="selector" range="{{typeOptions}}" range-key="label" value="{{typeIndex}}" bindchange="onTypeChange">
+      <view class="condition-pill">{{typeOptions[typeIndex].label}}</view>
+    </picker>
+  </view>
+
+  <sl-business-card
+    wx:for="{{list}}"
+    wx:key="id"
+    title="{{item.expenseNo}}"
+    subtitle="{{item.voyageNo}} / {{item.shipName}}"
+    extra="{{item.status}}"
+    extraTone="{{item.statusTone}}"
+    clickable
+    data-id="{{item.id}}"
+    bind:cardtap="onTapDetail"
+  >
+    <view class="row"><text class="label">Voyage</text><text class="value">{{item.voyageNo}}</text></view>
+    <view class="row"><text class="label">Expense Type</text><text class="value">{{item.expenseType}}</text></view>
+    <view class="row"><text class="label">Amount</text><text class="value">{{item.amountDisplay}}</text></view>
+    <view class="row"><text class="label">Occurred At</text><text class="value">{{item.occurredAt || '-'}}</text></view>
+    <view class="actions">
+      <sl-button class="btn" text="Detail" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="Create Expense"
+    bind:primarytap="onTapCreate"
+  />
+</sl-page-shell>

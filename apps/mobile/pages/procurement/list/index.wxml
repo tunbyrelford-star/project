@@ -1,0 +1,68 @@
+<sl-page-shell
+  title="采购单列表"
+  subtitle="创建采购、派船状态与航次跟踪"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  showEmpty="{{!loading && !showError && !list.length}}"
+  emptyText="暂无采购单"
+  bind:retry="onRetry"
+>
+  <sl-top-filter-bar
+    slot="filter"
+    filters="{{statusFilters}}"
+    activeKey="{{activeStatus}}"
+    showSearch="{{true}}"
+    searchPlaceholder="采购单号 / 船名 / 航次号"
+    bind:change="onFilterChange"
+    bind:search="onSearch"
+  />
+
+  <sl-business-card
+    wx:for="{{list}}"
+    wx:key="id"
+    title="{{item.procurementNo}}"
+    subtitle="{{item.shipName}} / {{item.voyageNo}}"
+    extra="{{item.statusText}}"
+    extraTone="{{item.statusType}}"
+    clickable
+    data-id="{{item.id}}"
+    bind:cardtap="onTapDetail"
+  >
+    <view class="row">
+      <text class="row__label">航次号</text>
+      <text class="row__value">{{item.voyageNo}}</text>
+    </view>
+    <view class="row">
+      <text class="row__label">计划吨数</text>
+      <text class="row__value">{{item.plannedQty}}</text>
+    </view>
+    <view class="row">
+      <text class="row__label">作业耗时</text>
+      <text class="row__value">{{item.durationText}}</text>
+    </view>
+    <view class="row">
+      <text class="row__label">异常标签</text>
+      <sl-status-tag text="{{item.abnormalText}}" type="{{item.abnormalType}}" />
+    </view>
+    <view class="row row--action">
+      <text class="row__label">下一步</text>
+      <sl-button
+        class="next-btn"
+        text="{{item.nextActionText}}"
+        type="secondary"
+        size="small"
+        data-id="{{item.id}}"
+        data-action-code="{{item.nextActionCode}}"
+        loading="{{actionLoadingId === item.id}}"
+        disabled="{{actionLoadingId > 0 && actionLoadingId !== item.id}}"
+        catch:tap="onTapAction"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="新建采购单"
+    bind:primarytap="onTapCreate"
+  />
+</sl-page-shell>

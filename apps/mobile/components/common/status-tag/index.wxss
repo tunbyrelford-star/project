@@ -1,0 +1,34 @@
+.status-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+  margin-right: 8rpx;
+  vertical-align: middle;
+}
+
+.status--default {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.status--success {
+  background: var(--sl-color-success-bg);
+  color: var(--sl-color-success);
+}
+
+.status--warning {
+  background: var(--sl-color-warning-bg);
+  color: var(--sl-color-warning);
+}
+
+.status--danger {
+  background: var(--sl-color-danger-bg);
+  color: var(--sl-color-danger);
+}
+
+.status--info {
+  background: var(--sl-color-info-bg);
+  color: var(--sl-color-info);
+}

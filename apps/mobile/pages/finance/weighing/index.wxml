@@ -1,0 +1,52 @@
+<sl-page-shell
+  title="磅单录入"
+  subtitle="{{order ? order.salesOrderNo : ''}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="订单信息">
+    <view class="row"><text class="label">订单号</text><text class="value">{{order.salesOrderNo || '-'}}</text></view>
+    <view class="row"><text class="label">客户</text><text class="value">{{order.customerName || '-'}}</text></view>
+    <view class="row"><text class="label">计划吨数</text><text class="value">{{order.plannedTotalQty || '-'}}</text></view>
+    <view class="row"><text class="label">应收状态</text><sl-status-tag text="{{order.arStatus || '-'}}" type="{{order.arStatus === 'FINAL_AR' ? 'success' : 'warning'}}" /></view>
+  </sl-business-card>
+
+  <sl-business-card title="磅单录入">
+    <view class="form-row">
+      <text class="form-label">最终结算吨数</text>
+      <input class="form-input" type="digit" value="{{form.finalTotalQty}}" bindinput="onQtyInput" placeholder="请输入 final_total_qty" />
+    </view>
+    <view class="form-row">
+      <text class="form-label">与计划差异</text>
+      <text class="delta {{deltaQty == null ? '' : (deltaQty === 0 ? 'delta--ok' : 'delta--warn')}}">
+        {{deltaQty == null ? '-' : deltaQty}}
+      </text>
+    </view>
+    <view wx:if="{{deltaQty != null && deltaQty !== 0}}" class="diff-tip">
+      检测到计划吨数与最终吨数不一致，后续必须由财务人工确认。
+    </view>
+
+    <view class="upload-block">
+      <sl-attachment-uploader
+        title="磅单附件"
+        value="{{voucherFiles}}"
+        maxCount="{{3}}"
+        bind:change="onVoucherChange"
+      />
+    </view>
+
+    <view class="form-row form-row--column">
+      <text class="form-label">备注</text>
+      <textarea class="remark-input" maxlength="255" value="{{form.remark}}" bindinput="onRemarkInput" placeholder="可填写差异说明、附件说明等" />
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="提交磅单"
+    primaryLoading="{{submitting}}"
+    primaryDisabled="{{submitting}}"
+    bind:primarytap="onSubmit"
+  />
+</sl-page-shell>

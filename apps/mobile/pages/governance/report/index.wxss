@@ -1,0 +1,77 @@
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10rpx;
+}
+
+.label {
+  color: var(--sl-color-text-secondary);
+  font-size: var(--sl-font-size-sm);
+}
+
+.input {
+  min-width: 420rpx;
+  min-height: var(--sl-hit-area-md);
+  border: 1rpx solid var(--sl-color-border);
+  border-radius: var(--sl-radius-md);
+  padding: 0 12rpx;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.search-btn {
+  margin-top: 4rpx;
+  min-width: 190rpx;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 54rpx;
+}
+
+.value {
+  color: var(--sl-color-text-primary);
+  font-size: var(--sl-font-size-sm);
+  max-width: 480rpx;
+  text-align: right;
+}
+
+.profit {
+  color: var(--sl-color-success);
+  font-weight: 700;
+}
+
+.warning {
+  color: var(--sl-color-warning);
+  font-weight: 700;
+}
+
+.empty {
+  color: var(--sl-color-text-muted);
+  font-size: var(--sl-font-size-sm);
+}
+
+.voyage-row,
+.line-row {
+  border-bottom: 1rpx dashed rgba(216, 224, 234, 0.9);
+  padding: 10rpx 0;
+}
+
+.voyage-row:last-child,
+.line-row:last-child {
+  border-bottom: none;
+}
+
+.action-row {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 8rpx;
+}
+
+.mini-link {
+  flex: 1;
+  margin: 0;
+}

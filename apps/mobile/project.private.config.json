@@ -1,0 +1,9 @@
+{
+  "description": "Private config for local development",
+  "projectname": "sand-logistics-miniapp",
+  "setting": {
+    "compileHotReLoad": true
+  },
+  "libVersion": "3.5.4"
+}
+

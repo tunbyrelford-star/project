@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "销售订单",
+  "usingComponents": {
+    "sales-batch-selector": "/components/sales/batch-selector/index"
+  }
+}

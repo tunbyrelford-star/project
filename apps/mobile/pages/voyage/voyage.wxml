@@ -1,0 +1,36 @@
+<sl-page-shell
+  title="航次看板"
+  subtitle="成本归集与利润核算主线"
+  showEmpty="{{!voyages.length}}"
+  emptyText="暂无航次数据"
+>
+  <sl-business-card
+    wx:for="{{voyages}}"
+    wx:key="no"
+    title="{{item.no}}"
+    subtitle="{{item.ship}}"
+    extra="{{item.statusLabel}}"
+    extraTone="{{item.statusTone}}"
+  >
+    <view class="row">
+      <text class="label">航次号</text>
+      <text class="value">{{item.no}}</text>
+    </view>
+    <view class="row">
+      <text class="label">船舶</text>
+      <text class="value">{{item.ship}}</text>
+    </view>
+    <view class="row">
+      <text class="label">采购单</text>
+      <text class="value">{{item.procurementNo}}</text>
+    </view>
+    <view class="row">
+      <text class="label">库存批次</text>
+      <text class="value">{{item.batchNo || '-'}}</text>
+    </view>
+    <view class="row">
+      <text class="label">状态</text>
+      <sl-status-tag text="{{item.statusLabel}}" type="{{item.statusType}}" dot="{{true}}" />
+    </view>
+  </sl-business-card>
+</sl-page-shell>

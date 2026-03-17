@@ -1,0 +1,52 @@
+<sl-page-shell
+  title="Payment Orders"
+  subtitle="Receipts and reversal records"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  showEmpty="{{!loading && !showError && !list.length}}"
+  emptyText="No payment orders"
+  bind:retry="onRetry"
+>
+  <sl-top-filter-bar
+    slot="filter"
+    filters="{{filters}}"
+    activeKey="{{activeStatus}}"
+    showSearch="{{true}}"
+    searchPlaceholder="Payment no / Sales order / Customer"
+    bind:change="onFilterChange"
+    bind:search="onSearch"
+  />
+
+  <view class="condition-row">
+    <picker mode="selector" range="{{typeOptions}}" range-key="label" value="{{typeIndex}}" bindchange="onTypeChange">
+      <view class="condition-pill">{{typeOptions[typeIndex].label}}</view>
+    </picker>
+  </view>
+
+  <sl-business-card
+    wx:for="{{list}}"
+    wx:key="id"
+    title="{{item.paymentNo}}"
+    subtitle="{{item.salesOrderNo}} / {{item.customerName}}"
+    extra="{{item.status}}"
+    extraTone="{{item.typeTone}}"
+    clickable
+    data-id="{{item.id}}"
+    bind:cardtap="onTapDetail"
+  >
+    <view class="row"><text class="label">Sales Order</text><text class="value">{{item.salesOrderNo}}</text></view>
+    <view class="row"><text class="label">Amount</text><text class="value">{{item.paymentAmount}}</text></view>
+    <view class="row"><text class="label">Method</text><text class="value">{{item.paymentMethod}}</text></view>
+    <view class="row"><text class="label">Type</text><sl-status-tag text="{{item.typeTag}}" type="{{item.typeTone}}" /></view>
+    <view class="row"><text class="label">Paid At</text><text class="value">{{item.paidAt || '-'}}</text></view>
+    <view class="actions">
+      <sl-button class="btn" text="Detail" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="Pending Receipt Actions"
+    bind:primarytap="onTapPending"
+  />
+</sl-page-shell>

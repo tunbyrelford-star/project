@@ -1,0 +1,39 @@
+<view class="attach">
+  <view class="attach__header">
+    <view class="attach__title">{{title}}</view>
+    <view class="attach__count">{{files.length}} / {{maxCount}}</view>
+  </view>
+
+  <view wx:if="{{!files.length}}" class="attach__empty">暂无附件</view>
+
+  <view class="attach__list">
+    <view wx:for="{{files}}" wx:key="path" class="attach__item">
+      <view class="attach__meta sl-tappable" bindtap="onPreview" data-path="{{item.path}}">
+        <view class="attach__icon"></view>
+        <view class="attach__text">
+          <view class="attach__name">{{item.name}}</view>
+          <view class="attach__size">{{item.sizeText}}</view>
+        </view>
+      </view>
+      <sl-button
+        wx:if="{{!readonly}}"
+        class="attach__remove"
+        text="移除"
+        type="tertiary"
+        size="small"
+        data-index="{{index}}"
+        bind:tap="onRemove"
+      />
+    </view>
+  </view>
+
+  <sl-button
+    wx:if="{{!readonly}}"
+    class="attach__btn"
+    text="上传附件"
+    type="secondary"
+    size="default"
+    block="{{true}}"
+    bind:tap="onChoose"
+  />
+</view>

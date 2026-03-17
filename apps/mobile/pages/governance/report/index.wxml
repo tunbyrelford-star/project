@@ -1,0 +1,50 @@
+<sl-page-shell
+  title="追溯报表"
+  subtitle="可追溯至 Voyage / Batch / SalesLineItem"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  showEmpty="{{!loading && !showError && !items.length}}"
+  emptyText="暂无报表数据"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="筛选">
+    <view class="form-row">
+      <text class="label">关键词</text>
+      <input class="input" value="{{keyword}}" bindinput="onKeywordInput" placeholder="航次号 / 批次号 / 订单号 / 客户" />
+    </view>
+    <sl-button class="search-btn" text="查询" type="primary" size="small" bind:tap="onSearch" />
+  </sl-business-card>
+
+  <sl-business-card title="汇总口径">
+    <view class="row"><text class="label">总行数</text><text class="value">{{summary ? summary.totalLines : 0}}</text></view>
+    <view class="row"><text class="label">总收入</text><text class="value">{{summary ? summary.totalRevenue : 0}}</text></view>
+    <view class="row"><text class="label">总成本</text><text class="value">{{summary ? summary.totalCost : 0}}</text></view>
+    <view class="row"><text class="label">总利润</text><text class="value profit">{{summary ? summary.totalProfit : 0}}</text></view>
+    <view class="row"><text class="label">净确认收款</text><text class="value">{{paymentSummary ? paymentSummary.totalNetConfirmed : 0}}</text></view>
+    <view class="row"><text class="label">总待收金额</text><text class="value warning">{{paymentSummary ? paymentSummary.totalOutstanding : 0}}</text></view>
+  </sl-business-card>
+
+  <sl-business-card title="按航次汇总">
+    <view wx:if="{{!voyageSummary.length}}" class="empty">暂无航次汇总</view>
+    <view wx:for="{{voyageSummary}}" wx:key="voyageId" class="voyage-row">
+      <view class="row"><text class="label">航次</text><text class="value">{{item.voyageNo}}</text></view>
+      <view class="row"><text class="label">收入/成本/利润</text><text class="value">{{item.revenueAmount}} / {{item.costAmount}} / {{item.profitAmount}}</text></view>
+      <sl-button class="mini-link" text="查看版本" type="tertiary" size="small" data-target-type="VOYAGE" data-target-id="{{item.voyageId}}" bind:tap="onTapVersion" />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="明细追溯">
+    <view wx:for="{{items}}" wx:key="lineId" class="line-row">
+      <view class="row"><text class="label">Voyage / Batch</text><text class="value">{{item.voyageNo}} / {{item.batchNo}}</text></view>
+      <view class="row"><text class="label">SalesOrder / Line</text><text class="value">{{item.salesOrderNo}} / L{{item.lineNo}}</text></view>
+      <view class="row"><text class="label">吨数(计划/最终)</text><text class="value">{{item.plannedQty}} / {{item.finalQty == null ? '-' : item.finalQty}}</text></view>
+      <view class="row"><text class="label">收入/成本/利润</text><text class="value">{{item.lineRevenueAmount}} / {{item.lineCostAmount}} / {{item.lineProfitAmount}}</text></view>
+      <view class="row"><text class="label">收款净额/待收</text><text class="value">{{item.netConfirmedAmount}} / {{item.outstandingAmount}}</text></view>
+      <view class="row"><text class="label">版本</text><text class="value">SV{{item.latestSettlementVersionNo}} / AV{{item.latestAllocationVersionNo}}</text></view>
+      <view class="action-row sl-btn-cluster">
+        <sl-button class="mini-link" text="航次版本" type="tertiary" size="small" data-target-type="VOYAGE" data-target-id="{{item.voyageId}}" bind:tap="onTapVersion" />
+        <sl-button class="mini-link" text="订单版本" type="tertiary" size="small" data-target-type="SALES_ORDER" data-target-id="{{item.salesOrderId}}" bind:tap="onTapVersion" />
+      </view>
+    </view>
+  </sl-business-card>
+</sl-page-shell>

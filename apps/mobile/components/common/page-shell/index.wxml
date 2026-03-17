@@ -1,0 +1,31 @@
+<view class="shell sl-page">
+  <view class="shell__header">
+    <view wx:if="{{title || subtitle}}" class="shell__title-block">
+      <view wx:if="{{title}}" class="sl-title">{{title}}</view>
+      <view wx:if="{{subtitle}}" class="sl-subtitle">{{subtitle}}</view>
+    </view>
+    <view class="shell__filter">
+      <slot name="filter"></slot>
+    </view>
+  </view>
+
+  <view class="shell__content">
+    <view wx:if="{{loading}}" class="shell__loading">
+      <view class="shell__skeleton shell__skeleton--lg"></view>
+      <view class="shell__skeleton"></view>
+      <view class="shell__skeleton"></view>
+      <view class="shell__loading-text">加载中...</view>
+    </view>
+    <sl-error-state
+      wx:elif="{{showError}}"
+      message="{{errorText}}"
+      bind:retry="onRetry"
+    />
+    <sl-empty-state wx:elif="{{showEmpty}}" text="{{emptyText}}" />
+    <slot wx:else></slot>
+  </view>
+
+  <view class="shell__footer">
+    <slot name="footer"></slot>
+  </view>
+</view>

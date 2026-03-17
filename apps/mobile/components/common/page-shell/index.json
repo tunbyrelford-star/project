@@ -1,0 +1,9 @@
+{
+  "component": true,
+  "styleIsolation": "apply-shared",
+  "usingComponents": {
+    "sl-empty-state": "/components/common/empty-state/index",
+    "sl-error-state": "/components/common/error-state/index"
+  }
+}
+

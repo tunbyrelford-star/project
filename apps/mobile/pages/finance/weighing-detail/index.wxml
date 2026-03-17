@@ -1,0 +1,43 @@
+<sl-page-shell
+  title="Weighing Slip Detail"
+  subtitle="{{detail.slipNo || ''}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="Slip Info">
+    <view class="row"><text class="label">Slip No</text><text class="value">{{detail.slipNo || '-'}}</text></view>
+    <view class="row"><text class="label">Status</text><text class="value">{{detail.status || '-'}}</text></view>
+    <view class="row"><text class="label">Sales Order</text><text class="value">{{detail.salesOrderNo || '-'}}</text></view>
+    <view class="row"><text class="label">Customer</text><text class="value">{{detail.customerName || '-'}}</text></view>
+    <view class="row"><text class="label">Planned Qty</text><text class="value">{{detail.plannedQty || '-'}}</text></view>
+    <view class="row"><text class="label">Final Qty</text><text class="value">{{detail.finalTotalQty || '-'}}</text></view>
+    <view class="row"><text class="label">Delta</text><text class="value">{{detail.deltaQty || '-'}}</text></view>
+    <view class="row"><text class="label">Confirmed At</text><text class="value">{{detail.confirmedAt || '-'}}</text></view>
+    <view class="row"><text class="label">Remark</text><text class="value">{{detail.remark || '-'}}</text></view>
+  </sl-business-card>
+
+  <sl-business-card title="Slip Line Items">
+    <view wx:if="{{!items.length}}" class="empty">No weighing line items</view>
+    <view wx:for="{{items}}" wx:key="id" class="line-item">
+      <view class="line-title">Line {{item.lineNo}} / {{item.truckNo || '-'}}</view>
+      <view class="row"><text class="label">Gross Qty</text><text class="value">{{item.grossQty}}</text></view>
+      <view class="row"><text class="label">Tare Qty</text><text class="value">{{item.tareQty}}</text></view>
+      <view class="row"><text class="label">Net Qty</text><text class="value">{{item.netQty}}</text></view>
+      <view class="row"><text class="label">Status</text><text class="value">{{item.status}}</text></view>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="Audit">
+    <sl-audit-timeline items="{{audits}}" />
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    secondaryText="Slip List"
+    secondaryType="secondary"
+    bind:secondarytap="onToList"
+    primaryText="Open Weighing Entry"
+    bind:primarytap="onGoEntry"
+  />
+</sl-page-shell>

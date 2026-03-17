@@ -1,0 +1,47 @@
+<sl-page-shell
+  title="航次详情"
+  subtitle="{{detail.voyageNo || ''}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="航次主信息">
+    <view class="row"><text class="label">航次号</text><text class="value">{{detail.voyageNo}}</text></view>
+    <view class="row"><text class="label">航次状态</text><text class="value">{{detail.status}}</text></view>
+    <view class="row"><text class="label">开始时间</text><text class="value">{{detail.startedAt}}</text></view>
+    <view class="row"><text class="label">锁定时间</text><text class="value">{{detail.lockedAt}}</text></view>
+    <view class="row"><text class="label">完成时间</text><text class="value">{{detail.completedAt}}</text></view>
+  </sl-business-card>
+
+  <sl-business-card title="采购关联">
+    <view class="row"><text class="label">采购单号</text><text class="value">{{detail.procurementNo}}</text></view>
+    <view class="row"><text class="label">采购状态</text><text class="value">{{detail.procurementStatus || '-'}}</text></view>
+    <view class="row"><text class="label">供应商</text><text class="value">{{detail.supplierName}}</text></view>
+    <view class="row"><text class="label">计划吨数</text><text class="value">{{detail.plannedQty || '-'}}</text></view>
+    <view class="row"><text class="label">计划时长(分钟)</text><text class="value">{{detail.plannedDurationMin || '-'}}</text></view>
+  </sl-business-card>
+
+  <sl-business-card title="船舶信息">
+    <view class="row"><text class="label">船名</text><text class="value">{{detail.shipName}}</text></view>
+    <view class="row"><text class="label">MMSI</text><text class="value">{{detail.mmsi}}</text></view>
+    <view class="row"><text class="label">船型</text><text class="value">{{detail.shipType}}</text></view>
+    <view class="row"><text class="label">载重</text><text class="value">{{detail.tonnage || '-'}}</text></view>
+  </sl-business-card>
+
+  <sl-business-card title="核算摘要">
+    <view class="row"><text class="label">已确认费用</text><text class="value">{{detail.totalExpense || 0}}</text></view>
+    <view class="row"><text class="label">费用条数</text><text class="value">{{detail.expenseCount || 0}}</text></view>
+    <view class="row"><text class="label">库存批次数</text><text class="value">{{detail.batchCount || 0}}</text></view>
+    <view class="row"><text class="label">可售总吨数</text><text class="value">{{detail.totalAvailableQty || 0}}</text></view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    secondaryText="{{detail.procurementId ? '返回采购单' : ''}}"
+    secondaryType="secondary"
+    secondaryDisabled="{{!detail.procurementId}}"
+    bind:secondarytap="onBackProcurement"
+    primaryText="刷新"
+    bind:primarytap="onRetry"
+  />
+</sl-page-shell>

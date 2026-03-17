@@ -1,0 +1,48 @@
+.shell {
+  min-height: 100vh;
+  background: var(--sl-color-bg);
+}
+
+.shell__header {
+  padding: var(--sl-space-5);
+  padding-bottom: var(--sl-space-4);
+}
+
+.shell__title-block {
+  margin-bottom: var(--sl-space-3);
+}
+
+.shell__filter {
+  border-radius: var(--sl-radius-lg);
+}
+
+.shell__content {
+  padding: 0 var(--sl-space-5) var(--sl-space-7);
+}
+
+.shell__loading {
+  padding: var(--sl-space-6) 0;
+}
+
+.shell__skeleton {
+  height: 84rpx;
+  border-radius: var(--sl-radius-md);
+  background: var(--sl-color-surface-soft);
+  border: 1rpx solid var(--sl-color-border);
+  margin-bottom: var(--sl-space-3);
+}
+
+.shell__skeleton--lg {
+  height: 112rpx;
+}
+
+.shell__loading-text {
+  margin-top: var(--sl-space-2);
+  text-align: center;
+  font-size: var(--sl-font-size-sm);
+  color: var(--sl-color-text-muted);
+}
+
+.shell__footer {
+  min-height: 1rpx;
+}

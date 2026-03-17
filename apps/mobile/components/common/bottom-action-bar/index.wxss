@@ -1,0 +1,37 @@
+.action-bar__spacer {
+  height: calc(var(--sl-btn-height-lg) + 64rpx + env(safe-area-inset-bottom));
+}
+
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.98);
+  border-top: 1rpx solid var(--sl-color-border);
+  box-shadow: var(--sl-shadow-float);
+  padding: 16rpx var(--sl-space-5) calc(16rpx + env(safe-area-inset-bottom));
+  z-index: 99;
+}
+
+.action-bar__tip {
+  margin-bottom: var(--sl-space-3);
+  color: var(--sl-color-text-muted);
+  font-size: var(--sl-font-size-xs);
+  line-height: var(--sl-line-height-normal);
+}
+
+.action-bar__buttons {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.action-bar__buttons--single > sl-button {
+  width: 100%;
+}
+
+.action-bar__buttons--double > sl-button {
+  flex: 1;
+  min-width: 0;
+}

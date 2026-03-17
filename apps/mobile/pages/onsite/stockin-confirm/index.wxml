@@ -1,0 +1,53 @@
+<sl-page-shell
+  title="入库确认"
+  subtitle="{{detail.batchNo || ''}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="批次状态">
+    <view class="row"><text class="label">批次号</text><text class="value">{{detail.batchNo || '-'}}</text></view>
+    <view class="row"><text class="label">航次号</text><text class="value">{{detail.voyageNo || '-'}}</text></view>
+    <view class="row"><text class="label">船名</text><text class="value">{{detail.shipName || '-'}}</text></view>
+    <view class="row">
+      <text class="label">Batch 状态</text>
+      <sl-status-tag text="{{detail.status || '-'}}" type="{{detail.statusType || 'default'}}" />
+    </view>
+    <view class="row"><text class="label">available_qty</text><text class="value">{{detail.availableQty}}</text></view>
+    <view class="row">
+      <text class="label">可售状态</text>
+      <sl-status-tag text="{{detail.sellableText || '-'}}" type="{{detail.sellableType || 'warning'}}" />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="入库确认表单">
+    <view class="form-row">
+      <text class="form-label">确认吨数</text>
+      <input class="form-input" type="digit" value="{{form.confirmedQty}}" data-field="confirmedQty" bindinput="onInput" />
+    </view>
+    <view class="form-row">
+      <text class="form-label">入库时间</text>
+      <input class="form-input" value="{{form.stockInTime}}" data-field="stockInTime" bindinput="onInput" />
+    </view>
+    <view class="form-row">
+      <text class="form-label">备注</text>
+      <input class="form-input" value="{{form.remark}}" data-field="remark" bindinput="onInput" />
+    </view>
+    <view class="form-row">
+      <sl-attachment-uploader
+        title="凭证上传"
+        maxCount="{{6}}"
+        value="{{evidenceFiles}}"
+        bind:change="onEvidenceChange"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="确认入库"
+    primaryLoading="{{submitting}}"
+    primaryDisabled="{{submitting}}"
+    bind:primarytap="onSubmit"
+  />
+</sl-page-shell>

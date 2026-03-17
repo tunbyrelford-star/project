@@ -1,0 +1,40 @@
+<sl-page-shell
+  title="Expense Detail"
+  subtitle="{{detail.expenseNo || ''}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="Expense Info">
+    <view class="row"><text class="label">Expense No</text><text class="value">{{detail.expenseNo || '-'}}</text></view>
+    <view class="row"><text class="label">Status</text><text class="value">{{detail.status || '-'}}</text></view>
+    <view class="row"><text class="label">Voyage</text><text class="value">{{detail.voyageNo || '-'}}</text></view>
+    <view class="row"><text class="label">Ship</text><text class="value">{{detail.shipName || '-'}}</text></view>
+    <view class="row"><text class="label">Type</text><text class="value">{{detail.expenseType || '-'}}</text></view>
+    <view class="row"><text class="label">Amount</text><text class="value">{{detail.amountDisplay || '-'}}</text></view>
+    <view class="row"><text class="label">Occurred At</text><text class="value">{{detail.occurredAt || '-'}}</text></view>
+    <view class="row"><text class="label">Source Module</text><text class="value">{{detail.sourceModule || '-'}}</text></view>
+  </sl-business-card>
+
+  <sl-business-card title="Vouchers">
+    <sl-attachment-uploader
+      title="Voucher Files"
+      readonly="{{true}}"
+      maxCount="{{99}}"
+      value="{{files}}"
+    />
+  </sl-business-card>
+
+  <sl-business-card title="Audit">
+    <sl-audit-timeline items="{{audits}}" />
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    secondaryText="Order List"
+    secondaryType="secondary"
+    bind:secondarytap="onToList"
+    primaryText="Create Expense"
+    bind:primarytap="onCreateWithVoyage"
+  />
+</sl-page-shell>

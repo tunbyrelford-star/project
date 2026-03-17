@@ -1,0 +1,73 @@
+<sl-page-shell
+  title="公共 UI 骨架"
+  subtitle="统一组件与按钮体系验收页"
+  loading="{{loading}}"
+  bind:retry="onRetry"
+>
+  <sl-top-filter-bar
+    slot="filter"
+    filters="{{filters}}"
+    activeKey="{{activeFilter}}"
+    bind:change="onFilterChange"
+    bind:search="onSearch"
+  />
+
+  <sl-business-card title="按钮系统" subtitle="商用化按钮主次层级与交互态">
+    <view class="btn-row sl-btn-cluster">
+      <sl-button text="主操作" type="primary" size="default" data-text="主操作" bind:tap="onDemoTap" />
+      <sl-button text="次操作" type="secondary" size="default" data-text="次操作" bind:tap="onDemoTap" />
+    </view>
+    <view class="btn-row sl-btn-cluster">
+      <sl-button text="弱操作" type="tertiary" size="default" data-text="弱操作" bind:tap="onDemoTap" />
+      <sl-button text="危险操作" type="danger" size="default" data-text="危险操作" bind:tap="onDemoTap" />
+    </view>
+    <view class="btn-row sl-btn-cluster">
+      <sl-button text="禁用" type="secondary" size="default" disabled="{{true}}" />
+      <sl-button text="加载中" type="primary" size="default" loading="{{demoLoading}}" bind:tap="onToggleDemoLoading" />
+    </view>
+    <view class="btn-row sl-btn-cluster">
+      <sl-button text="小尺寸" type="secondary" size="small" />
+      <sl-button text="默认尺寸" type="secondary" size="default" />
+      <sl-button text="大尺寸" type="secondary" size="large" />
+    </view>
+    <view class="btn-row sl-btn-cluster">
+      <sl-button icon="+" size="icon" type="tertiary" bind:tap="onDemoTap" data-text="图标按钮" />
+      <sl-button text="底部主按钮示例" type="primary" size="large" block="{{true}}" />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="业务卡片" subtitle="业务摘要信息" extra="IN_PROGRESS">
+    <view class="line-row">
+      <text>航次号：VY-202603-001</text>
+      <sl-status-tag text="进行中" type="info" />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="空状态 / 错误态">
+    <sl-empty-state text="当前无待处理任务" tip="请稍后刷新" />
+    <sl-error-state message="接口超时，请稍后再试" bind:retry="onRetry" />
+  </sl-business-card>
+
+  <sl-business-card title="附件上传 / 预览">
+    <sl-attachment-uploader
+      value="{{attachments}}"
+      bind:change="onAttachmentChange"
+    />
+  </sl-business-card>
+
+  <sl-business-card title="审计时间轴">
+    <sl-audit-timeline items="{{timeline}}" />
+  </sl-business-card>
+
+  <sl-business-card title="审批对比">
+    <sl-approval-diff rows="{{diffRows}}" />
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    secondaryText="取消"
+    primaryText="提交"
+    bind:secondarytap="onSecondaryTap"
+    bind:primarytap="onPrimaryTap"
+  />
+</sl-page-shell>

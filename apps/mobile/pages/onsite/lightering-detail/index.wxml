@@ -1,0 +1,43 @@
+<sl-page-shell
+  title="Lightering Detail"
+  subtitle="{{detail.lighteringNo || ''}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="Basic Info">
+    <view class="row"><text class="label">Order No</text><text class="value">{{detail.lighteringNo || '-'}}</text></view>
+    <view class="row"><text class="label">Status</text><text class="value">{{detail.status || '-'}}</text></view>
+    <view class="row"><text class="label">Voyage</text><text class="value">{{detail.voyageNo || '-'}}</text></view>
+    <view class="row"><text class="label">Ship</text><text class="value">{{detail.shipName || '-'}}</text></view>
+    <view class="row"><text class="label">Main Ship Empty</text><text class="value">{{detail.isMainShipEmpty ? 'Yes' : 'No'}}</text></view>
+    <view class="row"><text class="label">Started At</text><text class="value">{{detail.startedAt || '-'}}</text></view>
+    <view class="row"><text class="label">Confirmed At</text><text class="value">{{detail.confirmedAt || '-'}}</text></view>
+    <view class="row"><text class="label">Note</text><text class="value">{{detail.emptyConfirmNote || '-'}}</text></view>
+  </sl-business-card>
+
+  <sl-business-card title="Line Items">
+    <view wx:if="{{!items.length}}" class="empty">No line items</view>
+    <view wx:for="{{items}}" wx:key="id" class="line-item">
+      <view class="line-title">Line {{item.lineNo}} / {{item.cargoName}}</view>
+      <view class="row"><text class="label">Transfer Qty</text><text class="value">{{item.transferQty}}</text></view>
+      <view class="row"><text class="label">Receiver</text><text class="value">{{item.receiverName || '-'}}</text></view>
+      <view class="row"><text class="label">Receiver Ship</text><text class="value">{{item.receiverShipName || '-'}}</text></view>
+      <view class="row"><text class="label">Status</text><text class="value">{{item.status}}</text></view>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="Audit">
+    <sl-audit-timeline items="{{audits}}" />
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    secondaryText="Order List"
+    secondaryType="secondary"
+    bind:secondarytap="onToList"
+    primaryText="{{detail.canConfirmEmpty ? 'Confirm Empty' : 'View Voyage'}}"
+    primaryLoading="{{confirming}}"
+    bind:primarytap="onPrimaryAction"
+  />
+</sl-page-shell>

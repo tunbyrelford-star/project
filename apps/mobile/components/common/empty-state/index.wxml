@@ -1,0 +1,15 @@
+<view class="state">
+  <view class="state__icon">
+    <view class="state__icon-inner"></view>
+  </view>
+  <view class="state__text">{{text}}</view>
+  <view wx:if="{{tip}}" class="state__tip">{{tip}}</view>
+  <sl-button
+    wx:if="{{buttonText}}"
+    class="state__btn"
+    text="{{buttonText}}"
+    type="secondary"
+    size="default"
+    bind:tap="onAction"
+  />
+</view>

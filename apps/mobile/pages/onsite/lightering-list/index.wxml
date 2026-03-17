@@ -1,0 +1,56 @@
+<sl-page-shell
+  title="Lightering Orders"
+  subtitle="Lightering task orders and empty-confirm workflow"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  showEmpty="{{!loading && !showError && !list.length}}"
+  emptyText="No lightering orders"
+  bind:retry="onRetry"
+>
+  <sl-top-filter-bar
+    slot="filter"
+    filters="{{filters}}"
+    activeKey="{{activeStatus}}"
+    showSearch="{{true}}"
+    searchPlaceholder="Order no / Voyage no / Ship"
+    bind:change="onFilterChange"
+    bind:search="onSearch"
+  />
+
+  <sl-business-card
+    wx:for="{{list}}"
+    wx:key="id"
+    title="{{item.lighteringNo}}"
+    subtitle="{{item.voyageNo}} / {{item.shipName}}"
+    extra="{{item.status}}"
+    extraTone="{{item.statusTone}}"
+    clickable
+    data-id="{{item.id}}"
+    bind:cardtap="onTapDetail"
+  >
+    <view class="row"><text class="label">Voyage</text><text class="value">{{item.voyageNo}}</text></view>
+    <view class="row"><text class="label">Ship</text><text class="value">{{item.shipName}}</text></view>
+    <view class="row"><text class="label">Main Ship Empty</text><text class="value">{{item.isMainShipEmpty ? 'Yes' : 'No'}}</text></view>
+    <view class="row"><text class="label">Started At</text><text class="value">{{item.startedAt || '-'}}</text></view>
+    <view class="row"><text class="label">Confirmed At</text><text class="value">{{item.confirmedAt || '-'}}</text></view>
+    <view class="actions">
+      <sl-button class="btn" text="Detail" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
+      <sl-button
+        class="btn"
+        text="Confirm Empty"
+        type="primary"
+        size="small"
+        data-id="{{item.id}}"
+        loading="{{actionId === item.id}}"
+        disabled="{{!item.canConfirmEmpty || (actionId > 0 && actionId !== item.id)}}"
+        bind:tap="onTapConfirm"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="Onsite Todo"
+    bind:primarytap="onTapTaskBoard"
+  />
+</sl-page-shell>

@@ -1,0 +1,99 @@
+<sl-page-shell
+  title="{{mode === 'EDIT' ? '编辑销售订单' : '新建销售订单'}}"
+  subtitle="{{mode === 'EDIT' ? ('订单状态：' + (orderStatus || '-')) : '批次选货 + 归属明细'}}"
+  showEmpty="{{false}}"
+  showError="{{false}}"
+>
+  <sl-business-card title="订单信息">
+    <view class="form-row">
+      <text class="form-label">客户主数据</text>
+      <picker
+        mode="selector"
+        range="{{customerOptions}}"
+        range-key="customerName"
+        value="{{customerIndex}}"
+        bindchange="onCustomerChange"
+        disabled="{{!editable}}"
+      >
+        <view class="form-input">
+          {{customerIndex >= 0 ? customerOptions[customerIndex].customerName : '可选：从主数据选择客户'}}
+        </view>
+      </picker>
+    </view>
+    <view class="form-row">
+      <text class="form-label">客户名称</text>
+      <input class="form-input" value="{{form.customerName}}" data-field="customerName" bindinput="onInput" disabled="{{!editable}}" />
+    </view>
+    <view class="form-row">
+      <text class="form-label">销售单价</text>
+      <input class="form-input" type="digit" value="{{form.unitPrice}}" data-field="unitPrice" bindinput="onInput" disabled="{{!editable}}" />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="已选批次">
+    <view class="batch-toolbar sl-btn-cluster">
+      <sl-button class="tool-btn" text="批次选择器" type="secondary" size="small" bind:tap="onOpenSelector" disabled="{{!editable}}" />
+      <sl-button class="tool-btn" text="浏览可售批次" type="tertiary" size="small" bind:tap="onGoBatchPage" />
+    </view>
+
+    <view wx:if="{{!selectedBatches.length}}" class="empty">尚未选择批次</view>
+    <view wx:for="{{selectedBatches}}" wx:key="batchId" class="batch-item">
+      <view class="batch-main">
+        <view class="batch-title">{{item.batchNo}} / {{item.voyageNo}}</view>
+        <view class="batch-sub">可售剩余 {{item.remainingQty}}</view>
+      </view>
+      <view class="batch-actions">
+        <input
+          class="qty-input"
+          type="digit"
+          value="{{item.lockQty}}"
+          data-id="{{item.batchId}}"
+          bindinput="onQtyInput"
+          disabled="{{!editable}}"
+        />
+        <sl-button
+          class="remove-btn"
+          text="移除"
+          type="tertiary"
+          size="small"
+          data-id="{{item.batchId}}"
+          bind:tap="onRemoveBatch"
+          disabled="{{!editable}}"
+        />
+      </view>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="归属明细预览">
+    <view wx:if="{{!previewLines.length}}" class="empty">暂无归属明细</view>
+    <view wx:for="{{previewLines}}" wx:key="batchId" class="preview-item">
+      <view class="preview-head">Line {{item.lineNo}} / {{item.batchNo}} / {{item.voyageNo}}</view>
+      <view class="preview-row"><text class="label">锁定吨数</text><text class="value">{{item.lockQty}}</text></view>
+      <view class="preview-row"><text class="label">收入</text><text class="value">{{item.revenue}}</text></view>
+      <view class="preview-row"><text class="label">成本</text><text class="value">{{item.costDisplay}}</text></view>
+      <view class="preview-row"><text class="label">利润</text><text class="value">{{item.profitDisplay}}</text></view>
+    </view>
+    <view class="totals">
+      <view class="totals-row"><text class="label">总吨数</text><text class="value">{{previewTotals.totalQty}}</text></view>
+      <view class="totals-row"><text class="label">总收入</text><text class="value">{{previewTotals.totalRevenue}}</text></view>
+      <view class="totals-row"><text class="label">总成本</text><text class="value">{{previewTotals.totalCost == null ? '***' : previewTotals.totalCost}}</text></view>
+      <view class="totals-row"><text class="label">总利润</text><text class="value">{{previewTotals.totalProfit == null ? '***' : previewTotals.totalProfit}}</text></view>
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="{{mode === 'EDIT' ? '保存订单修改' : '提交并锁库存'}}"
+    primaryLoading="{{submitting}}"
+    primaryDisabled="{{submitting || !editable}}"
+    tip="{{editable ? '' : '当前订单状态不允许编辑'}}"
+    bind:primarytap="onSubmit"
+  />
+
+  <sales-batch-selector
+    visible="{{selectorVisible}}"
+    value="{{selectedBatches}}"
+    bind:close="onCloseSelector"
+    bind:confirm="onSelectorConfirm"
+  />
+</sl-page-shell>

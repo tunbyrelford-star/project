@@ -1,0 +1,32 @@
+<sl-page-shell
+  title="预警中心"
+  subtitle="异常识别、责任闭环、处理留痕"
+  showEmpty="{{!alerts.length}}"
+  emptyText="当前无预警事项"
+>
+  <sl-business-card
+    wx:for="{{alerts}}"
+    wx:key="id"
+    title="{{item.id}}"
+    subtitle="{{item.message}}"
+    extra="{{item.levelLabel}}"
+    extraTone="{{item.levelTone}}"
+  >
+    <view class="row">
+      <text class="label">预警等级</text>
+      <sl-status-tag text="{{item.levelLabel}}" type="{{item.levelType}}" dot="{{true}}" />
+    </view>
+    <view class="row">
+      <text class="label">业务对象</text>
+      <text class="value">{{item.entityRef}}</text>
+    </view>
+    <view class="row">
+      <text class="label">触发时间</text>
+      <text class="value">{{item.triggeredAt}}</text>
+    </view>
+    <view class="row">
+      <text class="label">闭环状态</text>
+      <sl-status-tag text="{{item.statusLabel}}" type="{{item.statusType}}" />
+    </view>
+  </sl-business-card>
+</sl-page-shell>

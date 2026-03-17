@@ -1,0 +1,56 @@
+<sl-page-shell
+  title="现场待办"
+  subtitle="过驳、卸空、入库、费用、异常闭环"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  errorText="{{errorText}}"
+  showEmpty="{{!loading && !showError && !list.length}}"
+  emptyText="暂无现场待办任务"
+  bind:retry="onRetry"
+>
+  <sl-top-filter-bar
+    slot="filter"
+    filters="{{filters}}"
+    activeKey="{{activeType}}"
+    showSearch="{{false}}"
+    bind:change="onFilterChange"
+  />
+
+  <sl-business-card
+    wx:for="{{list}}"
+    wx:key="taskKey"
+    title="{{item.voyageNo || '-'}}"
+    subtitle="{{item.shipName || '-'}}"
+    extra="{{item.currentStep}}"
+  >
+    <view class="row">
+      <text class="row__label">当前步骤</text>
+      <sl-status-tag text="{{item.currentStep}}" type="{{item.stepType}}" />
+    </view>
+    <view class="row">
+      <text class="row__label">状态标签</text>
+      <text class="row__value">{{item.statusText}}</text>
+    </view>
+    <view class="row">
+      <text class="row__label">紧急程度</text>
+      <sl-status-tag text="{{item.urgencyText}}" type="{{item.urgencyType}}" />
+    </view>
+    <view class="row row--action">
+      <text class="row__label">主操作</text>
+      <sl-button
+        class="next-btn"
+        text="{{item.primaryAction}}"
+        type="secondary"
+        size="small"
+        data-task-key="{{item.taskKey}}"
+        data-task-type="{{item.taskType}}"
+        data-task-id="{{item.taskId}}"
+        data-batch-id="{{item.batchId}}"
+        data-voyage-id="{{item.voyageId}}"
+        loading="{{item.taskType === 'WAIT_EMPTY_CONFIRM' && actionTaskKey === item.taskKey}}"
+        disabled="{{actionTaskKey && actionTaskKey !== item.taskKey}}"
+        catch:tap="onTapAction"
+      />
+    </view>
+  </sl-business-card>
+</sl-page-shell>

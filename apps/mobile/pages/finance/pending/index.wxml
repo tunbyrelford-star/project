@@ -1,0 +1,67 @@
+<sl-page-shell
+  title="待确认订单"
+  subtitle="磅单录入、财务确认、收款确认闭环"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  showEmpty="{{!loading && !showError && !list.length}}"
+  emptyText="暂无待处理订单"
+  bind:retry="onRetry"
+>
+  <sl-top-filter-bar
+    slot="filter"
+    filters="{{filters}}"
+    activeKey="{{activeAction}}"
+    showSearch="{{true}}"
+    searchPlaceholder="订单号 / 客户名"
+    bind:change="onFilterChange"
+    bind:search="onSearch"
+  />
+
+  <view class="stats-row">
+    <view class="stats-pill">总数 {{stats.total}}</view>
+    <view class="stats-pill">待磅单 {{stats.waitWeighing}}</view>
+    <view class="stats-pill">待财务确认 {{stats.waitFinanceConfirm}}</view>
+    <view class="stats-pill">待收款 {{stats.waitPayment}}</view>
+  </view>
+
+  <sl-business-card
+    wx:for="{{list}}"
+    wx:key="id"
+    title="{{item.salesOrderNo}}"
+    subtitle="{{item.customerName}}"
+    extra="{{item.nextActionLabel}}"
+  >
+    <view class="row">
+      <text class="label">当前状态</text>
+      <sl-status-tag text="{{item.status}}" type="{{item.nextActionType}}" />
+    </view>
+    <view class="row">
+      <text class="label">应收状态</text>
+      <sl-status-tag text="{{item.arStatus}}" type="{{item.arStatus === 'FINAL_AR' ? 'success' : 'warning'}}" />
+    </view>
+    <view class="row">
+      <text class="label">最终吨数</text>
+      <text class="value">{{item.finalTotalQty == null ? (item.latestSlipQty == null ? '-' : item.latestSlipQty) : item.finalTotalQty}}</text>
+    </view>
+    <view class="row">
+      <text class="label">吨数差异</text>
+      <text class="value">{{item.deltaQtyDisplay}}</text>
+    </view>
+    <view class="row">
+      <text class="label">差异状态</text>
+      <sl-status-tag text="{{item.diffText}}" type="{{item.diffType}}" />
+    </view>
+    <view class="row">
+      <text class="label">待办动作</text>
+      <sl-button
+        class="action-btn"
+        text="{{item.nextActionLabel}}"
+        type="primary"
+        size="small"
+        data-order-id="{{item.id}}"
+        data-next-action="{{item.nextAction}}"
+        bind:tap="onTapAction"
+      />
+    </view>
+  </sl-business-card>
+</sl-page-shell>

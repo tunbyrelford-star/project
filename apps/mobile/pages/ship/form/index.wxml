@@ -1,0 +1,114 @@
+<sl-page-shell
+  title="{{isEdit ? '编辑船只' : '新增船只'}}"
+  subtitle="维护船只主数据，为订单和航次统一选船"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="基础信息">
+    <view class="field">
+      <view class="field__label"><text class="required">*</text> 船名</view>
+      <input
+        class="field__input"
+        placeholder="请输入船名"
+        value="{{form.shipName}}"
+        data-field="shipName"
+        bindinput="onInput"
+      />
+    </view>
+    <view class="field">
+      <view class="field__label"><text class="required">*</text> MMSI</view>
+      <input
+        class="field__input"
+        placeholder="请输入 MMSI"
+        value="{{form.mmsi}}"
+        data-field="mmsi"
+        bindinput="onInput"
+      />
+    </view>
+    <view class="field">
+      <view class="field__label">船型</view>
+      <input
+        class="field__input"
+        placeholder="如：砂石运输船"
+        value="{{form.shipType}}"
+        data-field="shipType"
+        bindinput="onInput"
+      />
+    </view>
+    <view class="field">
+      <view class="field__label">载重（吨）</view>
+      <input
+        class="field__input"
+        placeholder="请输入载重"
+        value="{{form.tonnage}}"
+        type="digit"
+        data-field="tonnage"
+        bindinput="onInput"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="归属与联系">
+    <view class="field">
+      <view class="field__label">船东</view>
+      <input
+        class="field__input"
+        placeholder="请输入船东名称"
+        value="{{form.ownerName}}"
+        data-field="ownerName"
+        bindinput="onInput"
+      />
+    </view>
+    <view class="field">
+      <view class="field__label">联系电话</view>
+      <input
+        class="field__input"
+        placeholder="请输入联系电话"
+        value="{{form.contactPhone}}"
+        type="number"
+        data-field="contactPhone"
+        bindinput="onInput"
+      />
+    </view>
+    <view class="field">
+      <view class="field__label">常去港口</view>
+      <input
+        class="field__input"
+        placeholder="多个港口用 / 分隔"
+        value="{{form.commonPorts}}"
+        data-field="commonPorts"
+        bindinput="onInput"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="状态与备注">
+    <view class="field">
+      <view class="field__label"><text class="required">*</text> 船只状态</view>
+      <picker mode="selector" range="{{statusOptions}}" range-key="label" value="{{statusIndex}}" bindchange="onStatusChange">
+        <view class="field__picker">{{statusOptions[statusIndex].label}}</view>
+      </picker>
+    </view>
+    <view class="field field--textarea">
+      <view class="field__label">备注</view>
+      <textarea
+        class="field__textarea"
+        placeholder="请输入备注信息"
+        value="{{form.remark}}"
+        maxlength="500"
+        data-field="remark"
+        bindinput="onInput"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    tip="请确认必填项后提交"
+    primaryText="{{submitText}}"
+    primaryLoading="{{submitLoading}}"
+    primaryDisabled="{{submitLoading}}"
+    bind:primarytap="onSubmit"
+  />
+</sl-page-shell>

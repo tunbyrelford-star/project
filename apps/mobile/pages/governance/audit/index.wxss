@@ -1,0 +1,27 @@
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.label {
+  color: var(--sl-color-text-secondary);
+  font-size: var(--sl-font-size-sm);
+}
+
+.picker-value,
+.input {
+  min-width: 280rpx;
+  min-height: var(--sl-hit-area-md);
+  border: 1rpx solid var(--sl-color-border);
+  border-radius: var(--sl-radius-md);
+  padding: 0 12rpx;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.search-btn {
+  margin-top: 4rpx;
+  min-width: 190rpx;
+}

@@ -1,0 +1,46 @@
+.field {
+  margin-bottom: 18rpx;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field__label {
+  color: var(--sl-color-text-secondary);
+  font-size: var(--sl-font-size-sm);
+  margin-bottom: 8rpx;
+}
+
+.required {
+  color: var(--sl-color-danger);
+}
+
+.field__input,
+.field__picker {
+  min-height: 72rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid var(--sl-color-border);
+  border-radius: var(--sl-radius-md);
+  background: #f9fbff;
+  color: var(--sl-color-text-primary);
+  font-size: var(--sl-font-size-md);
+  display: flex;
+  align-items: center;
+}
+
+.field--textarea {
+  margin-bottom: 0;
+}
+
+.field__textarea {
+  width: 100%;
+  min-height: 180rpx;
+  padding: 14rpx 16rpx;
+  border: 1rpx solid var(--sl-color-border);
+  border-radius: var(--sl-radius-md);
+  background: #f9fbff;
+  color: var(--sl-color-text-primary);
+  font-size: var(--sl-font-size-md);
+  box-sizing: border-box;
+}

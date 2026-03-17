@@ -1,0 +1,23 @@
+<button
+  class="sl-btn sl-btn--{{resolvedType}} sl-btn--{{resolvedSize}} {{block ? 'sl-btn--block' : ''}} {{iconOnly ? 'sl-btn--icon-only' : ''}} {{(disabled || loading) ? 'is-disabled' : ''}} {{loading ? 'is-loading' : ''}} {{customClass}}"
+  hover-class="{{(disabled || loading) ? '' : hoverClass}}"
+  hover-stop-propagation="{{true}}"
+  hover-stay-time="70"
+  disabled="{{disabled || loading}}"
+  loading="{{loading}}"
+  form-type="{{formType}}"
+  open-type="{{openType}}"
+  lang="{{lang}}"
+  catchtap="onTap"
+>
+  <view class="sl-btn__content">
+    <text
+      wx:if="{{icon}}"
+      class="sl-btn__icon {{iconPosition === 'right' ? 'sl-btn__icon--right' : 'sl-btn__icon--left'}}"
+    >
+      {{icon}}
+    </text>
+    <text wx:if="{{text}}" class="sl-btn__text">{{text}}</text>
+    <slot></slot>
+  </view>
+</button>

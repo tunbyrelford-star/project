@@ -1,0 +1,40 @@
+.state {
+  text-align: center;
+  padding: 120rpx 24rpx;
+}
+
+.state__icon {
+  width: 104rpx;
+  height: 104rpx;
+  margin: 0 auto 18rpx;
+  border-radius: 50%;
+  background: var(--sl-color-surface-soft);
+  border: 1rpx solid var(--sl-color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.state__icon-inner {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 10rpx;
+  border: 2rpx solid var(--sl-color-text-muted);
+  opacity: 0.45;
+}
+
+.state__text {
+  font-size: var(--sl-font-size-md);
+  color: var(--sl-color-text-secondary);
+}
+
+.state__tip {
+  margin-top: 10rpx;
+  font-size: var(--sl-font-size-sm);
+  color: var(--sl-color-text-muted);
+}
+
+.state__btn {
+  margin-top: var(--sl-space-3);
+  min-width: 220rpx;
+}

@@ -1,0 +1,114 @@
+﻿<sl-page-shell
+  title="系统登录"
+  subtitle="统一登录入口，按角色加载菜单与权限"
+>
+  <sl-business-card title="账号信息" subtitle="同一登录界面支持全部业务角色">
+    <view class="sl-form-row">
+      <text class="sl-form-label">账号</text>
+      <input
+        class="sl-form-input"
+        data-field="username"
+        value="{{form.username}}"
+        placeholder="请输入账号"
+        bindinput="onInput"
+      />
+    </view>
+
+    <view class="sl-form-row">
+      <text class="sl-form-label">密码</text>
+      <input
+        class="sl-form-input"
+        data-field="password"
+        value="{{form.password}}"
+        placeholder="请输入密码"
+        password="{{true}}"
+        bindinput="onInput"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="登录角色" subtitle="普通账号仅可登录授权角色；超级管理员默认全权限">
+    <view class="sl-form-row">
+      <text class="sl-form-label">角色</text>
+      <picker
+        mode="selector"
+        range="{{roleOptions}}"
+        range-key="label"
+        value="{{roleIndex}}"
+        bindchange="onRoleChange"
+      >
+        <view class="sl-form-picker picker-value">{{roleOptions.length ? roleOptions[roleIndex].label : ''}}</view>
+      </picker>
+    </view>
+
+    <view class="sl-banner sl-banner--info">
+      超级管理员拥有全部权限，可直接完成跨角色操作与审批。
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="后端连接" subtitle="{{isRealDevice ? '真机请使用电脑局域网IP，不可使用127.0.0.1' : '开发工具可使用127.0.0.1'}}">
+    <view class="backend-row">
+      <text class="backend-label">当前地址</text>
+      <text class="backend-value">{{backendBaseUrl}}</text>
+    </view>
+    <view class="sl-form-row">
+      <text class="sl-form-label">手动设置后端地址</text>
+      <input
+        class="sl-form-input"
+        value="{{backendInput}}"
+        placeholder="例如 http://172.23.96.36:3000/api"
+        bindinput="onBackendInput"
+      />
+    </view>
+    <view class="backend-actions">
+      <sl-button
+        text="保存后端地址"
+        type="secondary"
+        size="small"
+        bind:tap="onSaveBackend"
+      />
+    </view>
+    <view class="backend-row backend-row--column">
+      <text class="backend-label">候选地址</text>
+      <text class="backend-candidates">{{backendCandidatesText}}</text>
+    </view>
+    <view class="backend-candidate-row">
+      <sl-button
+        wx:for="{{backendCandidates}}"
+        wx:key="*this"
+        class="backend-candidate-btn"
+        text="{{item}}"
+        type="tertiary"
+        size="small"
+        data-url="{{item}}"
+        bind:tap="onUseCandidate"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="演示账号" subtitle="点击即可自动填充">
+    <view
+      wx:for="{{demoUsers}}"
+      wx:key="username"
+      class="demo-item sl-tappable"
+      data-username="{{item.username}}"
+      data-password="{{item.password}}"
+      bindtap="onQuickFill"
+    >
+      <view class="demo-item__head">
+        <text class="demo-item__user">{{item.username}}</text>
+        <text class="demo-item__role">{{item.role}}</text>
+      </view>
+      <view class="demo-item__pwd">密码：{{item.password}}</view>
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    tip="登录后将自动按角色加载权限、菜单与数据视图"
+    primaryText="登录"
+    primaryLoading="{{submitting}}"
+    primaryDisabled="{{submitting || !canSubmit}}"
+    bind:primarytap="onSubmit"
+  />
+</sl-page-shell>

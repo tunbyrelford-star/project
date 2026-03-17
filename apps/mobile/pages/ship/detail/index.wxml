@@ -1,0 +1,86 @@
+<sl-page-shell
+  title="船只详情"
+  subtitle="{{detail.shipName || detail.mmsi || mmsi}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="基础信息">
+    <view class="row"><text class="label">船只编号</text><text class="value">{{detail.shipNo || '-'}}</text></view>
+    <view class="row"><text class="label">船名</text><text class="value">{{detail.shipName || '-'}}</text></view>
+    <view class="row"><text class="label">MMSI</text><text class="value">{{detail.mmsi || mmsi || '-'}}</text></view>
+    <view class="row"><text class="label">船型</text><text class="value">{{detail.shipType || '-'}}</text></view>
+    <view class="row"><text class="label">载重</text><text class="value">{{detail.tonnageText || '-'}}</text></view>
+    <view class="row"><text class="label">船东</text><text class="value">{{detail.ownerName || '-'}}</text></view>
+    <view class="row"><text class="label">联系电话</text><text class="value">{{detail.contactPhone || '-'}}</text></view>
+    <view class="row"><text class="label">常去港口</text><text class="value">{{detail.commonPortsText || '-'}}</text></view>
+    <view class="row"><text class="label">备注</text><text class="value">{{detail.remark || '-'}}</text></view>
+    <view class="action-row">
+      <sl-button text="编辑船只" type="secondary" size="small" bind:tap="onEditShip" />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="状态信息">
+    <view class="row">
+      <text class="label">业务状态</text>
+      <sl-status-tag text="{{detail.statusText || '-'}}" type="{{detail.statusType || 'warning'}}" />
+    </view>
+    <view class="row">
+      <text class="label">在线状态</text>
+      <sl-status-tag text="{{detail.onlineText || '-'}}" type="{{detail.onlineType || 'warning'}}" />
+    </view>
+    <view class="row"><text class="label">最后定位时间</text><text class="value">{{detail.lastPositionText || '-'}}</text></view>
+    <view class="row"><text class="label">更新时间</text><text class="value">{{detail.updatedAtText || '-'}}</text></view>
+    <view class="row"><text class="label">创建时间</text><text class="value">{{detail.createdAtText || '-'}}</text></view>
+  </sl-business-card>
+
+  <sl-business-card title="定位信息">
+    <view wx:if="{{positionError}}" class="map-error">
+      <sl-error-state message="定位加载失败，请重试" buttonText="重试定位" bind:retry="onRetryPosition" />
+    </view>
+    <view wx:elif="{{!position}}" class="map-empty">
+      <sl-empty-state text="暂无位置数据" />
+    </view>
+    <map
+      wx:else
+      class="map"
+      latitude="{{mapLatitude}}"
+      longitude="{{mapLongitude}}"
+      markers="{{markers}}"
+      show-location="{{true}}"
+      scale="{{11}}"
+      min-scale="{{4}}"
+      max-scale="{{18}}"
+    />
+
+    <view class="row"><text class="label">更新时间</text><text class="value">{{position.positionTimeText || '-'}}</text></view>
+    <view class="row"><text class="label">经纬度</text><text class="value">{{position.coordText || '-'}}</text></view>
+    <view class="row"><text class="label">速度</text><text class="value">{{position.speedText || '-'}}</text></view>
+    <view class="row"><text class="label">航向</text><text class="value">{{position.courseText || '-'}}</text></view>
+    <view class="row"><text class="label">当前港口</text><text class="value">{{position.portName || '-'}}</text></view>
+    <view class="row"><text class="label">停港时长</text><text class="value">{{position.portStayText || '-'}}</text></view>
+    <view class="row"><text class="label">数据来源</text><text class="value value--source">{{position.sourceText || '-'}}</text></view>
+  </sl-business-card>
+
+  <sl-business-card title="常去港口">
+    <view wx:if="{{!frequentPorts.length}}" class="empty">暂无统计数据</view>
+    <view wx:for="{{frequentPorts}}" wx:key="portName" class="port-row">
+      <text class="port-name">{{item.portName}}</text>
+      <text class="port-extra">访问 {{item.visitCount}} 次</text>
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    tip="{{refreshTip}}"
+    secondaryText="{{secondaryActionText}}"
+    secondaryType="danger"
+    secondaryLoading="{{actionLoading}}"
+    secondaryDisabled="{{actionLoading || refreshing}}"
+    primaryText="{{primaryActionText}}"
+    primaryLoading="{{refreshing}}"
+    primaryDisabled="{{refreshing || actionLoading}}"
+    bind:secondarytap="onToggleStatus"
+    bind:primarytap="onRefreshPosition"
+  />
+</sl-page-shell>

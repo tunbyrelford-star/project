@@ -1,0 +1,53 @@
+<sl-page-shell
+  title="Order Center"
+  subtitle="{{summary.updatedAtText}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="Order Workspace" subtitle="Unified entry for all order documents">
+    <view class="summary-grid">
+      <view class="summary-item">
+        <text class="summary-item__label">Accessible Modules</text>
+        <text class="summary-item__value">{{summary.moduleCount}}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-item__label">Total Pending</text>
+        <text class="summary-item__value">{{summary.totalTodo}}</text>
+      </view>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="Document Entries" subtitle="Procurement, onsite, sales and finance orders">
+    <view
+      wx:for="{{entries}}"
+      wx:key="key"
+      class="entry-card {{item.enabled ? '' : 'entry-card--disabled'}}"
+    >
+      <view class="entry-card__main">
+        <view class="entry-card__name">{{item.name}}</view>
+        <view class="entry-card__desc">{{item.description}}</view>
+        <view wx:if="{{item.enabled && !item.fetchOk}}" class="entry-card__hint">
+          Pending count unavailable. Tap Open to continue.
+        </view>
+        <view wx:if="{{!item.enabled}}" class="entry-card__hint">
+          This role has no access to this module.
+        </view>
+      </view>
+      <view class="entry-card__side">
+        <view class="entry-card__todo-label">Pending</view>
+        <sl-status-tag text="{{item.todoText}}" type="{{item.todoTone}}" />
+        <sl-button
+          class="entry-card__action"
+          text="{{item.actionText}}"
+          type="{{item.enabled ? 'secondary' : 'tertiary'}}"
+          size="small"
+          data-path="{{item.path}}"
+          data-enabled="{{item.enabled ? 1 : 0}}"
+          disabled="{{!item.enabled}}"
+          bind:tap="onTapEntry"
+        />
+      </view>
+    </view>
+  </sl-business-card>
+</sl-page-shell>

@@ -1,0 +1,77 @@
+page {
+  --sl-color-bg: #f3f5f8;
+  --sl-color-surface: #ffffff;
+  --sl-color-surface-soft: #f8fafc;
+  --sl-color-border: #d8e0ea;
+  --sl-color-border-strong: #c4cfdb;
+  --sl-color-border-focus: #8fa7c5;
+  --sl-color-text-primary: #1A1D21;
+  --sl-color-text-secondary: #3E4651;
+  --sl-color-text-muted: #8A94A6;
+  --sl-color-primary: #12528E;
+  --sl-color-primary-light: rgba(18, 82, 142, 0.08);
+  --sl-color-primary-weak: #e7eff7;
+  --sl-color-primary-pressed: #0d3d6b;
+  --sl-color-primary-hover: #1663ab;
+  --sl-color-success: #1f7a4f;
+  --sl-color-warning: #b25a12;
+  --sl-color-danger: #b42318;
+  --sl-color-danger-pressed: #951f17;
+  --sl-color-info: #1f5fca;
+  --sl-color-tertiary: #30455f;
+  --sl-color-tertiary-hover: #25384f;
+  --sl-color-tertiary-bg: #eef3f8;
+  --sl-color-disabled-bg: #e7edf4;
+  --sl-color-disabled-text: #9aa8b8;
+  --sl-color-disabled-border: #d7e1ec;
+  --sl-color-warning-bg: #fff7eb;
+  --sl-color-danger-bg: #fef1f1;
+  --sl-color-info-bg: #ecf3ff;
+  --sl-color-success-bg: #edf8f2;
+
+  --sl-font-size-xs: 22rpx;
+  --sl-font-size-sm: 24rpx;
+  --sl-font-size-md: 26rpx;
+  --sl-font-size-lg: 30rpx;
+  --sl-font-size-xl: 36rpx;
+  --sl-line-height-tight: 1.3;
+  --sl-line-height-normal: 1.5;
+  --sl-line-height-relaxed: 1.7;
+
+  --sl-space-1: 8rpx;
+  --sl-space-2: 12rpx;
+  --sl-space-3: 16rpx;
+  --sl-space-4: 20rpx;
+  --sl-space-5: 24rpx;
+  --sl-space-6: 32rpx;
+  --sl-space-7: 40rpx;
+  --sl-space-8: 48rpx;
+
+  --sl-radius-sm: 10rpx;
+  --sl-radius-md: 16rpx;
+  --sl-radius-lg: 24rpx;
+  --sl-radius-pill: 999rpx;
+  --sl-btn-radius-sm: 12rpx;
+  --sl-btn-radius-md: 14rpx;
+  --sl-btn-radius-lg: 16rpx;
+
+  --sl-btn-height-sm: 56rpx;
+  --sl-btn-height-md: 72rpx;
+  --sl-btn-height-lg: 80rpx;
+
+  --sl-btn-font-sm: 22rpx;
+  --sl-btn-font-md: 24rpx;
+  --sl-btn-font-lg: 26rpx;
+
+  --sl-btn-padding-sm: 0 20rpx;
+  --sl-btn-padding-md: 0 26rpx;
+  --sl-btn-padding-lg: 0 32rpx;
+  --sl-btn-icon-gap: 8rpx;
+
+  --sl-hit-area-md: 72rpx;
+  --sl-hit-area-lg: 80rpx;
+
+  --sl-shadow-card: 0 2rpx 8rpx rgba(0, 0, 0, 0.04), 0 8rpx 24rpx rgba(0, 0, 0, 0.02);
+  --sl-shadow-float: 0 -4rpx 16rpx rgba(0, 0, 0, 0.06);
+  --sl-shadow-btn-primary: 0 4rpx 12rpx rgba(18, 82, 142, 0.22);
+}

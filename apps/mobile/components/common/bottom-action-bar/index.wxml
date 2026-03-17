@@ -1,0 +1,25 @@
+<view class="action-bar__spacer"></view>
+<view class="action-bar">
+  <view wx:if="{{tip}}" class="action-bar__tip">{{tip}}</view>
+  <view class="action-bar__buttons {{secondaryText ? 'action-bar__buttons--double' : 'action-bar__buttons--single'}}">
+    <sl-button
+      wx:if="{{secondaryText}}"
+      text="{{secondaryText}}"
+      type="{{secondaryType}}"
+      size="{{secondarySize}}"
+      block="{{true}}"
+      loading="{{secondaryLoading}}"
+      disabled="{{secondaryDisabled}}"
+      bind:tap="onSecondaryTap"
+    />
+    <sl-button
+      text="{{primaryText}}"
+      type="{{primaryType}}"
+      size="{{primarySize}}"
+      block="{{true}}"
+      loading="{{primaryLoading}}"
+      disabled="{{primaryDisabled}}"
+      bind:tap="onPrimaryTap"
+    />
+  </view>
+</view>

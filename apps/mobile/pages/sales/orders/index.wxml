@@ -1,0 +1,63 @@
+<sl-page-shell
+  title="销售订单"
+  subtitle="订单列表与状态追踪"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  showEmpty="{{!loading && !showError && !list.length}}"
+  emptyText="暂无销售订单"
+  bind:retry="onRetry"
+>
+  <sl-top-filter-bar
+    slot="filter"
+    filters="{{statusFilters}}"
+    activeKey="{{activeStatus}}"
+    showSearch="{{true}}"
+    searchPlaceholder="订单号 / 客户"
+    bind:change="onFilterChange"
+    bind:search="onSearch"
+  />
+
+  <sl-business-card
+    wx:for="{{list}}"
+    wx:key="id"
+    title="{{item.orderNo}}"
+    subtitle="{{item.customerName}}"
+    extra="{{item.statusText}}"
+    extraTone="{{item.statusType}}"
+    clickable
+    data-id="{{item.id}}"
+    bind:cardtap="onTapDetail"
+  >
+    <view class="row"><text class="label">订单号</text><text class="value">{{item.orderNo}}</text></view>
+    <view class="row"><text class="label">客户</text><text class="value">{{item.customerName}}</text></view>
+    <view class="row"><text class="label">计划吨数</text><text class="value">{{item.plannedTotalQty}}</text></view>
+    <view class="row"><text class="label">订单金额</text><text class="value">{{item.totalAmount}}</text></view>
+    <view class="row"><text class="label">状态</text><sl-status-tag text="{{item.statusText}}" type="{{item.statusType}}" /></view>
+    <view class="actions">
+      <sl-button
+        class="btn"
+        text="查看详情"
+        type="secondary"
+        size="small"
+        data-id="{{item.id}}"
+        bind:tap="onTapDetail"
+      />
+      <sl-button
+        class="btn"
+        text="编辑"
+        type="tertiary"
+        size="small"
+        data-id="{{item.id}}"
+        data-editable="{{item.editable ? 1 : 0}}"
+        disabled="{{!item.editable}}"
+        bind:tap="onTapEdit"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="新建销售订单"
+    bind:primarytap="onTapCreate"
+  />
+</sl-page-shell>

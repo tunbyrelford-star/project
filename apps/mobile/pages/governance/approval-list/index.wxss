@@ -1,0 +1,39 @@
+.quick-row {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.quick-btn {
+  flex: 1;
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 58rpx;
+  padding: 8rpx 0;
+}
+
+.row--action {
+  margin-top: 6rpx;
+}
+
+.label {
+  color: var(--sl-color-text-secondary);
+  font-size: var(--sl-font-size-sm);
+}
+
+.value {
+  color: var(--sl-color-text-primary);
+  font-size: var(--sl-font-size-sm);
+  max-width: 460rpx;
+  text-align: right;
+}
+
+.detail-btn {
+  min-width: 170rpx;
+  margin: 0;
+}

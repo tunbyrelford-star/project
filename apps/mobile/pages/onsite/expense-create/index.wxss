@@ -1,0 +1,41 @@
+.form-row {
+  margin-bottom: 16rpx;
+}
+
+.form-row:last-child {
+  margin-bottom: 0;
+}
+
+.form-label {
+  display: block;
+  color: var(--sl-color-text-secondary);
+  font-size: var(--sl-font-size-xs);
+  margin-bottom: 8rpx;
+}
+
+.form-input,
+.picker-value {
+  min-height: var(--sl-hit-area-md);
+  border: 1rpx solid var(--sl-color-border);
+  border-radius: var(--sl-radius-md);
+  background: #ffffff;
+  padding: 0 16rpx;
+  display: flex;
+  align-items: center;
+  color: var(--sl-color-text-primary);
+  font-size: var(--sl-font-size-sm);
+  box-sizing: border-box;
+}
+
+.masked-value {
+  min-height: var(--sl-hit-area-md);
+  border: 1rpx dashed var(--sl-color-border-strong);
+  border-radius: var(--sl-radius-md);
+  background: var(--sl-color-surface-soft);
+  padding: 0 16rpx;
+  display: flex;
+  align-items: center;
+  color: var(--sl-color-text-muted);
+  font-size: var(--sl-font-size-sm);
+  box-sizing: border-box;
+}

@@ -1,0 +1,61 @@
+<sl-page-shell
+  title="费用录入"
+  subtitle="简洁表单 + 凭证上传 + 权限控制"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="录入信息">
+    <view class="form-row">
+      <text class="form-label">航次</text>
+      <picker mode="selector" range="{{voyageOptions}}" range-key="voyageNo" value="{{voyageIndex}}" bindchange="onVoyageChange">
+        <view class="picker-value">
+          {{voyageIndex >= 0 ? (voyageOptions[voyageIndex].voyageNo + ' / ' + voyageOptions[voyageIndex].shipName) : '请选择航次'}}
+        </view>
+      </picker>
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">费用类型</text>
+      <picker mode="selector" range="{{expenseTypeOptions}}" range-key="label" value="{{expenseTypeIndex}}" bindchange="onExpenseTypeChange">
+        <view class="picker-value">{{expenseTypeOptions[expenseTypeIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">发生时间</text>
+      <input class="form-input" value="{{form.occurredAt}}" data-field="occurredAt" bindinput="onInput" />
+    </view>
+
+    <view class="form-row" wx:if="{{access.canViewAmount}}">
+      <text class="form-label">金额</text>
+      <input class="form-input" type="digit" value="{{form.amount}}" data-field="amount" bindinput="onInput" />
+    </view>
+    <view class="form-row" wx:else>
+      <text class="form-label">金额</text>
+      <view class="masked-value">***（当前角色受限）</view>
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">备注</text>
+      <input class="form-input" value="{{form.remark}}" data-field="remark" bindinput="onInput" />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="凭证">
+    <sl-attachment-uploader
+      title="上传凭证"
+      maxCount="{{8}}"
+      value="{{voucherFiles}}"
+      bind:change="onVoucherChange"
+    />
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="提交费用"
+    primaryLoading="{{submitting}}"
+    primaryDisabled="{{submitting || !access.canSubmitExpense || !access.canViewAmount}}"
+    bind:primarytap="onSubmit"
+  />
+</sl-page-shell>

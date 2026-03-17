@@ -1,0 +1,13 @@
+<view class="error">
+  <view class="error__icon">
+    <view class="error__icon-line"></view>
+  </view>
+  <view class="error__message">{{message}}</view>
+  <sl-button
+    class="error__btn"
+    text="{{buttonText}}"
+    type="secondary"
+    size="default"
+    bind:tap="onRetry"
+  />
+</view>

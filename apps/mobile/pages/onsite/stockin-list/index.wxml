@@ -1,0 +1,48 @@
+<sl-page-shell
+  title="Stock-In Orders"
+  subtitle="Inventory stock-in confirmation orders"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  showEmpty="{{!loading && !showError && !list.length}}"
+  emptyText="No stock-in orders"
+  bind:retry="onRetry"
+>
+  <sl-top-filter-bar
+    slot="filter"
+    filters="{{filters}}"
+    activeKey="{{activeStatus}}"
+    showSearch="{{true}}"
+    searchPlaceholder="Stock-in no / Batch / Voyage / Ship"
+    bind:change="onFilterChange"
+    bind:search="onSearch"
+  />
+
+  <sl-business-card
+    wx:for="{{list}}"
+    wx:key="id"
+    title="{{item.stockInNo}}"
+    subtitle="{{item.batchNo}} / {{item.voyageNo}}"
+    extra="{{item.status}}"
+    extraTone="{{item.statusTone}}"
+    clickable
+    data-id="{{item.id}}"
+    bind:cardtap="onTapDetail"
+  >
+    <view class="row"><text class="label">Batch</text><text class="value">{{item.batchNo}}</text></view>
+    <view class="row"><text class="label">Voyage</text><text class="value">{{item.voyageNo}}</text></view>
+    <view class="row"><text class="label">Ship</text><text class="value">{{item.shipName}}</text></view>
+    <view class="row"><text class="label">Confirmed Qty</text><text class="value">{{item.confirmedQty}}</text></view>
+    <view class="row"><text class="label">Version</text><text class="value">v{{item.versionNo}}</text></view>
+    <view class="row"><text class="label">Stock-In Time</text><text class="value">{{item.stockInTime || '-'}}</text></view>
+    <view class="actions">
+      <sl-button class="btn" text="Detail" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
+      <sl-button class="btn" text="Confirm Page" type="tertiary" size="small" data-batch-id="{{item.batchId}}" bind:tap="onTapConfirm" />
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="Stock-In Todo"
+    bind:primarytap="onTapTodo"
+  />
+</sl-page-shell>

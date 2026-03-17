@@ -1,0 +1,85 @@
+{
+  "pages": [
+    "pages/auth/login/index",
+    "pages/orders/center/index",
+    "pages/index/index",
+    "pages/procurement/list/index",
+    "pages/procurement/create/index",
+    "pages/procurement/detail/index",
+    "pages/voyage/detail/index",
+    "pages/ship/list/index",
+    "pages/ship/detail/index",
+    "pages/ship/form/index",
+    "pages/onsite/tasks/index",
+    "pages/onsite/lightering-list/index",
+    "pages/onsite/lightering-detail/index",
+    "pages/onsite/stockin-list/index",
+    "pages/onsite/stockin-detail/index",
+    "pages/onsite/expense-list/index",
+    "pages/onsite/expense-detail/index",
+    "pages/onsite/stockin-confirm/index",
+    "pages/onsite/expense-create/index",
+    "pages/sales/orders/index",
+    "pages/sales/batches/index",
+    "pages/sales/create/index",
+    "pages/sales/detail/index",
+    "pages/finance/pending/index",
+    "pages/finance/weighing-list/index",
+    "pages/finance/weighing-detail/index",
+    "pages/finance/weighing/index",
+    "pages/finance/confirm/index",
+    "pages/finance/payment-list/index",
+    "pages/finance/payment-detail/index",
+    "pages/finance/payment/index",
+    "pages/governance/approval-list/index",
+    "pages/governance/approval-detail/index",
+    "pages/governance/version-history/index",
+    "pages/governance/audit/index",
+    "pages/governance/report/index",
+    "pages/voyage/voyage",
+    "pages/alerts/alerts",
+    "pages/ui-kit/index"
+  ],
+  "usingComponents": {
+    "sl-page-shell": "/components/common/page-shell/index",
+    "sl-business-card": "/components/common/business-card/index",
+    "sl-button": "/components/common/button/index",
+    "sl-status-tag": "/components/common/status-tag/index",
+    "sl-top-filter-bar": "/components/common/top-filter-bar/index",
+    "sl-bottom-action-bar": "/components/common/bottom-action-bar/index",
+    "sl-empty-state": "/components/common/empty-state/index",
+    "sl-error-state": "/components/common/error-state/index",
+    "sl-attachment-uploader": "/components/common/attachment-uploader/index",
+    "sl-audit-timeline": "/components/common/audit-timeline/index",
+    "sl-approval-diff": "/components/common/approval-diff/index"
+  },
+  "window": {
+    "navigationBarTitleText": "Sand Logistics",
+    "navigationBarBackgroundColor": "#0B3B66",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F4F7FB",
+    "backgroundTextStyle": "light"
+  },
+  "tabBar": {
+    "color": "#666666",
+    "selectedColor": "#0B3B66",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "工作台"
+      },
+      {
+        "pagePath": "pages/ship/list/index",
+        "text": "船只"
+      },
+      {
+        "pagePath": "pages/onsite/tasks/index",
+        "text": "现场"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

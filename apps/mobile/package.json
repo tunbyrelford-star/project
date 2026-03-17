@@ -1,0 +1,13 @@
+{
+  "name": "sand-logistics-miniprogram",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WeChat mini program for sand logistics management",
+  "scripts": {
+    "check": "node scripts/check-json.js"
+  },
+  "devDependencies": {
+    "miniprogram-api-typings": "^4.0.0"
+  }
+}
+

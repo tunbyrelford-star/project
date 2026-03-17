@@ -1,0 +1,68 @@
+<sl-page-shell
+  title="销售订单详情"
+  subtitle="{{order.orderNo || order.salesOrderNo || ''}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="订单信息">
+    <view class="row"><text class="label">订单号</text><text class="value">{{order.orderNo || '-'}}</text></view>
+    <view class="row"><text class="label">客户</text><text class="value">{{order.customerName || '-'}}</text></view>
+    <view class="row"><text class="label">状态</text><sl-status-tag text="{{order.statusTag || order.status || '-'}}" type="{{order.statusType || 'default'}}" /></view>
+    <view class="row"><text class="label">总吨数</text><text class="value">{{order.plannedTotalQty}}</text></view>
+    <view class="row"><text class="label">最终吨数</text><text class="value">{{order.finalTotalQty == null ? '-' : order.finalTotalQty}}</text></view>
+    <view class="row"><text class="label">订单金额</text><text class="value">{{order.totalAmount}}</text></view>
+    <view class="row"><text class="label">应收状态</text><sl-status-tag text="{{order.arStatus || '-'}}" type="{{order.arType || 'default'}}" /></view>
+    <view class="row"><text class="label">收款状态</text><sl-status-tag text="{{order.receiptStatus || '-'}}" type="{{order.receiptType || 'default'}}" /></view>
+  </sl-business-card>
+
+  <sl-business-card title="归属明细">
+    <view wx:if="{{!lineItems.length}}" class="empty">暂无归属明细</view>
+    <view wx:for="{{lineItems}}" wx:key="id" class="line-item">
+      <view class="line-head">Line {{item.lineNo}} / {{item.batchNo}} / {{item.voyageNo}}</view>
+      <view class="row"><text class="label">锁定吨数</text><text class="value">{{item.lockedQty}}</text></view>
+      <view class="row"><text class="label">单价</text><text class="value">{{item.lineUnitPrice}}</text></view>
+      <view class="row"><text class="label">收入</text><text class="value">{{item.revenueAmount}}</text></view>
+      <view class="row"><text class="label">成本</text><text class="value">{{item.lineCostDisplay}}</text></view>
+      <view class="row"><text class="label">利润</text><text class="value">{{item.lineProfitDisplay}}</text></view>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="磅单信息">
+    <view wx:if="{{!weighingSlips.length}}" class="empty">暂无磅单</view>
+    <view wx:for="{{weighingSlips}}" wx:key="id" class="line-item">
+      <view class="line-head">{{item.slipNo}}</view>
+      <view class="row"><text class="label">状态</text><text class="value">{{item.status}}</text></view>
+      <view class="row"><text class="label">计划吨数</text><text class="value">{{item.plannedQty}}</text></view>
+      <view class="row"><text class="label">最终吨数</text><text class="value">{{item.finalTotalQty}}</text></view>
+      <view class="row"><text class="label">差异</text><text class="value">{{item.deltaQty}}</text></view>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="收款信息">
+    <view class="row"><text class="label">已确认收款</text><text class="value">{{order.confirmedReceiptAmount}}</text></view>
+    <view class="row"><text class="label">待收款</text><text class="value">{{order.outstandingAmount}}</text></view>
+    <view wx:if="{{!payments.length}}" class="empty">暂无收款记录</view>
+    <view wx:for="{{payments}}" wx:key="id" class="line-item">
+      <view class="line-head">{{item.paymentNo}}</view>
+      <view class="row"><text class="label">金额</text><text class="value">{{item.paymentAmount}}</text></view>
+      <view class="row"><text class="label">方式</text><text class="value">{{item.paymentMethod}}</text></view>
+      <view class="row"><text class="label">状态</text><text class="value">{{item.status}}</text></view>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="审计记录">
+    <sl-audit-timeline items="{{audits}}" />
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    secondaryText="订单列表"
+    secondaryType="secondary"
+    bind:secondarytap="onToList"
+    primaryText="编辑订单"
+    primaryDisabled="{{!order.editable}}"
+    tip="{{order.editable ? '' : '当前状态不可编辑'}}"
+    bind:primarytap="onEdit"
+  />
+</sl-page-shell>

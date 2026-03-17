@@ -1,0 +1,74 @@
+<view wx:if="{{visible}}" class="selector-mask" bindtap="onClose">
+  <view class="selector-panel" catchtap="noop">
+    <view class="selector-header">
+      <view class="selector-title">批次选择器</view>
+      <view class="selector-close" bindtap="onClose">关闭</view>
+    </view>
+
+    <view class="search-row">
+      <input
+        class="search-input"
+        placeholder="批次号 / 航次号 / 船名"
+        value="{{keyword}}"
+        bindinput="onKeywordInput"
+        confirm-type="search"
+        bindconfirm="onSearch"
+      />
+      <sl-button class="search-btn" text="搜索" type="secondary" size="small" bind:tap="onSearch" />
+    </view>
+
+    <view wx:if="{{loading}}" class="loading">加载中...</view>
+    <sl-error-state wx:elif="{{showError}}" message="加载失败" buttonText="重试" bind:retry="onRetry" />
+
+    <scroll-view wx:else scroll-y class="batch-list">
+      <view wx:for="{{list}}" wx:key="id" class="batch-item {{item.selectable ? '' : 'batch-item--disabled'}}">
+        <view class="batch-head">
+          <view class="batch-main">
+            <text class="batch-no">{{item.batchNo}}</text>
+            <text class="batch-sub">{{item.voyageNo}} / {{item.shipName}}</text>
+          </view>
+          <sl-button
+            class="select-btn"
+            text="{{item.selected ? '已选' : '选择'}}"
+            type="{{item.selected ? 'primary' : 'secondary'}}"
+            size="small"
+            data-id="{{item.id}}"
+            bind:tap="onToggleSelect"
+            disabled="{{!item.selectable}}"
+          />
+        </view>
+
+        <view class="batch-row">
+          <text class="label">可售吨数</text>
+          <text class="value">{{item.remainingQty}}</text>
+        </view>
+        <view class="batch-row">
+          <text class="label">状态</text>
+          <sl-status-tag text="{{item.batchStatus}}" type="{{item.statusType}}" />
+        </view>
+        <view class="batch-row">
+          <text class="label">资料完整性</text>
+          <text class="value">{{item.docsCompleteText}}</text>
+        </view>
+
+        <view wx:if="{{!item.selectable}}" class="disabled-reason">不可选原因：{{item.disabledReason}}</view>
+
+        <view wx:if="{{item.selected}}" class="qty-row">
+          <text class="label">锁定吨数</text>
+          <input
+            class="qty-input"
+            type="digit"
+            value="{{item.qtyInput}}"
+            data-id="{{item.id}}"
+            bindinput="onQtyInput"
+          />
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="selector-footer">
+      <sl-button class="footer-btn" text="取消" type="tertiary" size="default" block="{{true}}" bind:tap="onClose" />
+      <sl-button class="footer-btn" text="确认批次" type="primary" size="default" block="{{true}}" bind:tap="onConfirm" />
+    </view>
+  </view>
+</view>

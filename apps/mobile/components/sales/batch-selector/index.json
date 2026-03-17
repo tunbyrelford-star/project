@@ -1,0 +1,9 @@
+{
+  "component": true,
+  "styleIsolation": "apply-shared",
+  "usingComponents": {
+    "sl-button": "/components/common/button/index",
+    "sl-status-tag": "/components/common/status-tag/index",
+    "sl-error-state": "/components/common/error-state/index"
+  }
+}

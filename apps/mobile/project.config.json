@@ -1,0 +1,32 @@
+{
+  "description": "Sand logistics mini program",
+  "packOptions": {
+    "ignore": []
+  },
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "coverView": true,
+    "showShadowRootInWxmlPanel": true,
+    "checkInvalidKey": true,
+    "uploadWithSourceMap": true,
+    "compileHotReLoad": true,
+    "useMultiFrameRuntime": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.5.4",
+  "appid": "touristappid",
+  "projectname": "sand-logistics-miniapp",
+  "miniprogramRoot": "./",
+  "srcMiniprogramRoot": "./",
+  "condition": {}
+}
+

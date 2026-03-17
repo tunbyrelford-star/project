@@ -1,0 +1,53 @@
+<sl-page-shell
+  title="财务确认"
+  subtitle="{{order ? order.salesOrderNo : ''}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="结算状态">
+    <view class="row"><text class="label">订单状态</text><sl-status-tag text="{{order.status || '-'}}" type="info" /></view>
+    <view class="row"><text class="label">应收状态</text><sl-status-tag text="{{order.arStatus || '-'}}" type="{{order.arStatus === 'FINAL_AR' ? 'success' : 'warning'}}" /></view>
+    <view class="row"><text class="label">计划吨数</text><text class="value">{{order.plannedTotalQty || '-'}}</text></view>
+    <view class="row"><text class="label">当前应收金额</text><text class="value">{{order.totalAmount || '-'}}</text></view>
+  </sl-business-card>
+
+  <sl-business-card title="磅单与差异">
+    <view class="row"><text class="label">磅单号</text><text class="value">{{effectiveSlip ? effectiveSlip.slipNo : '-'}}</text></view>
+    <view class="row"><text class="label">最终吨数</text><text class="value">{{effectiveSlip ? effectiveSlip.finalTotalQty : '-'}}</text></view>
+    <view class="row"><text class="label">差异吨数</text><text class="value {{effectiveSlip && effectiveSlip.deltaQty !== 0 ? 'warn' : 'ok'}}">{{effectiveSlip ? effectiveSlip.deltaQty : '-'}}</text></view>
+    <view wx:if="{{effectiveSlip && effectiveSlip.deltaQty !== 0}}" class="tip-warn">
+      检测到差异，必须填写人工确认说明后才能提交财务确认。
+    </view>
+    <view class="note-block">
+      <text class="label">差异确认说明</text>
+      <textarea class="note-input" maxlength="255" value="{{diffConfirmNote}}" bindinput="onNoteInput" placeholder="例如：现场复磅后确认，以最终磅单为准" />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="归属分摊预览">
+    <view wx:if="{{!lineItems.length}}" class="empty">暂无归属明细</view>
+    <view wx:for="{{lineItems}}" wx:key="id" class="line-item">
+      <view class="line-head">Line {{item.lineNo}} / {{item.batchNo}} / {{item.voyageNo}}</view>
+      <view class="row"><text class="label">计划吨数</text><text class="value">{{item.plannedQty}}</text></view>
+      <view class="row"><text class="label">当前最终吨数</text><text class="value">{{item.finalQty == null ? '-' : item.finalQty}}</text></view>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="执行动作">
+    <view class="action-note" wx:if="{{!actions.canFinanceConfirm}}">
+      当前不可执行：{{actions.financeConfirmDisabledReason || '条件不足'}}
+    </view>
+    <view class="action-note" wx:else>
+      确认后将生成 FINAL_AR，收款将进入不可撤销确认链路。
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="财务确认并生成 FINAL_AR"
+    primaryLoading="{{submitting}}"
+    primaryDisabled="{{submitting || !actions.canFinanceConfirm}}"
+    bind:primarytap="onSubmit"
+  />
+</sl-page-shell>

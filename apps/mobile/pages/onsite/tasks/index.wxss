@@ -1,0 +1,33 @@
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 62rpx;
+  border-bottom: 1rpx dashed rgba(216, 224, 234, 0.9);
+  padding: 8rpx 0;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row__label {
+  color: var(--sl-color-text-secondary);
+  font-size: var(--sl-font-size-sm);
+}
+
+.row__value {
+  color: var(--sl-color-text-primary);
+  font-size: var(--sl-font-size-sm);
+  font-weight: 600;
+}
+
+.row--action {
+  padding-top: 14rpx;
+  border-bottom: 0;
+}
+
+.next-btn {
+  margin: 0;
+  min-width: 180rpx;
+}

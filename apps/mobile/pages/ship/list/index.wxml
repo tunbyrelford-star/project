@@ -1,0 +1,95 @@
+<sl-page-shell
+  title="船只管理"
+  subtitle="主数据维护与状态管理"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  errorText="{{errorText}}"
+  showEmpty="{{!loading && !showError && !list.length}}"
+  emptyText="暂无船只数据"
+  bind:retry="onRetry"
+>
+  <sl-top-filter-bar
+    slot="filter"
+    filters="{{statusFilters}}"
+    activeKey="{{activeStatus}}"
+    showSearch="{{true}}"
+    searchPlaceholder="船名 / MMSI / 编号 / 船东"
+    bind:change="onFilterChange"
+    bind:search="onSearch"
+  />
+
+  <view class="toolbar">
+    <view class="picker-item">
+      <text class="picker-item__label">船型</text>
+      <picker mode="selector" range="{{shipTypeOptions}}" value="{{shipTypeIndex}}" bindchange="onShipTypeChange">
+        <view class="picker-item__value">{{shipTypeOptions[shipTypeIndex]}}</view>
+      </picker>
+    </view>
+    <view class="picker-item">
+      <text class="picker-item__label">载重</text>
+      <picker
+        mode="selector"
+        range="{{tonnageOptions}}"
+        range-key="label"
+        value="{{tonnageIndex}}"
+        bindchange="onTonnageChange"
+      >
+        <view class="picker-item__value">{{tonnageOptions[tonnageIndex].label}}</view>
+      </picker>
+    </view>
+    <sl-button icon="icon-plus" text="新增船只" type="primary" size="small" bind:tap="onCreate" />
+  </view>
+
+  <sl-business-card
+    wx:for="{{list}}"
+    wx:key="id"
+    title="{{item.shipName}}"
+    subtitle="MMSI: {{item.mmsi}}"
+    extra="{{item.statusText}}"
+    clickable
+    data-id="{{item.id}}"
+    bind:cardtap="onTapDetail"
+  >
+    <view class="info-grid mt-md">
+      <view class="info-item" style="grid-column: span 3;">
+        <text class="info-item__label">状态</text>
+        <view class="info-item__value">
+          <sl-status-tag text="{{item.statusText}}" type="{{item.statusType}}" />
+          <sl-status-tag text="{{item.onlineText}}" type="{{item.onlineType}}" />
+        </view>
+      </view>
+      <view class="info-item">
+        <text class="info-item__label">船型</text>
+        <text class="info-item__value">{{item.shipTypeText}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-item__label">载重</text>
+        <text class="info-item__value">{{item.tonnageText}}</text>
+      </view>
+    </view>
+    <view class="info-item info-item--full">
+      <text class="info-item__label">最后定位时间</text>
+      <text class="info-item__value">{{item.lastPositionText}}</text>
+    </view>
+    <view class="info-item info-item--full">
+      <text class="info-item__label">常去港口</text>
+      <text class="info-item__value">{{item.frequentPortsText || '-'}}</text>
+    </view>
+    <view class="action-row">
+      <sl-button
+        text="查看详情"
+        type="secondary"
+        size="small"
+        data-id="{{item.id}}"
+        bind:tap="onTapDetail"
+      />
+      <sl-button
+        text="编辑"
+        type="tertiary"
+        size="small"
+        data-id="{{item.id}}"
+        bind:tap="onTapEdit"
+      />
+    </view>
+  </sl-business-card>
+</sl-page-shell>

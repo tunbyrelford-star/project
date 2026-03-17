@@ -1,0 +1,54 @@
+<sl-page-shell
+  title="审批列表"
+  subtitle="待审批事项卡片化视图"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  showEmpty="{{!loading && !showError && !list.length}}"
+  emptyText="暂无审批事项"
+  bind:retry="onRetry"
+>
+  <sl-top-filter-bar
+    slot="filter"
+    filters="{{filters}}"
+    activeKey="{{activeStatus}}"
+    showSearch="{{true}}"
+    searchPlaceholder="审批单号 / 原因"
+    bind:change="onFilterChange"
+    bind:search="onSearch"
+  />
+
+  <view class="quick-row sl-btn-cluster">
+    <sl-button class="quick-btn" text="版本历史" type="tertiary" size="small" bind:tap="onTapVersions" />
+    <sl-button class="quick-btn" text="审计记录" type="tertiary" size="small" bind:tap="onTapAudits" />
+    <sl-button class="quick-btn" text="报表追溯" type="tertiary" size="small" bind:tap="onTapReports" />
+  </view>
+
+  <sl-business-card
+    wx:for="{{list}}"
+    wx:key="id"
+    title="{{item.approvalNo}}"
+    subtitle="{{item.approvalType}} / {{item.targetEntityType}}#{{item.targetEntityId}}"
+    extra="{{item.reviewFlagText}}"
+  >
+    <view class="row">
+      <text class="label">状态</text>
+      <sl-status-tag text="{{item.status}}" type="{{item.statusType}}" />
+    </view>
+    <view class="row">
+      <text class="label">申请原因</text>
+      <text class="value">{{item.reason}}</text>
+    </view>
+    <view class="row">
+      <text class="label">申请人</text>
+      <text class="value">{{item.requestedByName || item.requestedBy}}</text>
+    </view>
+    <view class="row">
+      <text class="label">申请时间</text>
+      <text class="value">{{item.requestedAt}}</text>
+    </view>
+    <view class="row row--action">
+      <text class="label">操作</text>
+      <sl-button class="detail-btn" text="查看详情" type="primary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
+    </view>
+  </sl-business-card>
+</sl-page-shell>

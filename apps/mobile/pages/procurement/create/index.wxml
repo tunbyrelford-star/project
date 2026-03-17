@@ -1,0 +1,111 @@
+<sl-page-shell title="新建采购单" subtitle="选择供应商和船只后自动派船并生成航次">
+  <sl-business-card title="基础信息">
+    <view class="form-row">
+      <text class="form-label">采购单号（可选）</text>
+      <input
+        class="form-input"
+        placeholder="留空则自动生成"
+        value="{{form.procurementNo}}"
+        data-field="procurementNo"
+        bindinput="onInput"
+      />
+    </view>
+    <view class="form-row">
+      <text class="form-label form-label--required">供应商</text>
+      <picker
+        mode="selector"
+        range="{{supplierOptions}}"
+        range-key="supplier_name"
+        value="{{supplierIndex}}"
+        bindchange="onSupplierChange"
+      >
+        <view class="picker-value">{{form.supplierName || '请选择供应商'}}</view>
+      </picker>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="派船信息">
+    <view class="form-row">
+      <text class="form-label form-label--required">船只</text>
+      <view class="picker-value picker-value--action" bindtap="openShipModal">
+        {{form.shipName || '点击选择船只'}}
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label form-label--required">计划吨数</text>
+      <input
+        class="form-input"
+        type="digit"
+        placeholder="请输入计划吨数"
+        value="{{form.plannedQty}}"
+        data-field="plannedQty"
+        bindinput="onInput"
+      />
+    </view>
+    <view class="form-row">
+      <text class="form-label form-label--required">采购单价</text>
+      <input
+        class="form-input"
+        type="digit"
+        placeholder="请输入采购单价"
+        value="{{form.unitPrice}}"
+        data-field="unitPrice"
+        bindinput="onInput"
+      />
+    </view>
+    <view class="form-row">
+      <text class="form-label form-label--required">计划作业时长（分钟）</text>
+      <input
+        class="form-input"
+        type="number"
+        placeholder="请输入计划作业时长"
+        value="{{form.plannedDurationMin}}"
+        data-field="plannedDurationMin"
+        bindinput="onInput"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="附件资料（可选）">
+    <sl-attachment-uploader
+      title="采砂单（mining_ticket）"
+      maxCount="{{1}}"
+      value="{{miningTicketFiles}}"
+      bind:change="onMiningTicketChange"
+    />
+    <view class="space"></view>
+    <sl-attachment-uploader
+      title="质量照片（quality_photos）"
+      maxCount="{{4}}"
+      value="{{qualityPhotoFiles}}"
+      bind:change="onQualityPhotoChange"
+    />
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="提交并派船"
+    primaryLoading="{{loading}}"
+    primaryDisabled="{{loading}}"
+    bind:primarytap="onSubmit"
+  />
+
+  <view wx:if="{{shipModalVisible}}" class="modal-mask" bindtap="closeShipModal">
+    <view class="modal-panel" catchtap="noop">
+      <view class="modal-title">选择船只</view>
+      <scroll-view scroll-y class="modal-list">
+        <view
+          wx:for="{{shipOptions}}"
+          wx:key="id"
+          class="modal-item"
+          data-id="{{item.id}}"
+          data-name="{{item.ship_name}}"
+          bindtap="onSelectShip"
+        >
+          <view class="modal-item__title">{{item.ship_name}}</view>
+          <view class="modal-item__sub">MMSI: {{item.mmsi || '-'}} / {{item.status}}</view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</sl-page-shell>

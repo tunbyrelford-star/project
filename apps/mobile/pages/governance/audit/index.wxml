@@ -1,0 +1,31 @@
+<sl-page-shell
+  title="审计记录"
+  subtitle="操作人 / 时间 / 动作 / 原因"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  showEmpty="{{!loading && !showError && !timelineItems.length}}"
+  emptyText="暂无审计记录"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="筛选条件">
+    <view class="form-row">
+      <text class="label">对象类型</text>
+      <picker mode="selector" range="{{entityOptions}}" range-key="label" value="{{entityIndex}}" bindchange="onEntityChange">
+        <view class="picker-value">{{entityOptions[entityIndex].label}}</view>
+      </picker>
+    </view>
+    <view class="form-row">
+      <text class="label">对象ID</text>
+      <input class="input" type="number" value="{{entityId}}" bindinput="onEntityIdInput" placeholder="可选" />
+    </view>
+    <view class="form-row">
+      <text class="label">关键词</text>
+      <input class="input" value="{{keyword}}" bindinput="onKeywordInput" placeholder="动作或原因关键词" />
+    </view>
+    <sl-button class="search-btn" text="查询" type="primary" size="small" bind:tap="onSearch" />
+  </sl-business-card>
+
+  <sl-business-card title="时间轴">
+    <sl-audit-timeline items="{{timelineItems}}" />
+  </sl-business-card>
+</sl-page-shell>

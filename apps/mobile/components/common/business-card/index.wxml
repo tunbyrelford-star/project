@@ -1,0 +1,12 @@
+<view class="card sl-card {{clickable ? 'card--clickable sl-tappable' : ''}}" bindtap="onTap">
+  <view wx:if="{{title || subtitle || extra}}" class="card__header">
+    <view class="card__title-wrap">
+      <view wx:if="{{title}}" class="card__title">{{title}}</view>
+      <view wx:if="{{subtitle}}" class="card__subtitle">{{subtitle}}</view>
+    </view>
+    <view wx:if="{{extra}}" class="card__extra {{extraToneClass}}">{{extra}}</view>
+  </view>
+  <view class="card__body">
+    <slot></slot>
+  </view>
+</view>

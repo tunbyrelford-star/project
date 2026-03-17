@@ -1,0 +1,40 @@
+<view class="filter-bar">
+  <scroll-view class="filter-scroll" scroll-x enable-flex>
+    <view
+      wx:for="{{filters}}"
+      wx:key="key"
+      class="filter-pill sl-tappable {{activeKey === item.key ? 'filter-pill--active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onTapFilter"
+    >
+      {{item.label}}
+    </view>
+  </scroll-view>
+
+  <view wx:if="{{showSearch}}" class="search-row">
+    <input
+      class="search-input"
+      placeholder="{{searchPlaceholder}}"
+      value="{{keyword}}"
+      bindinput="onInput"
+      confirm-type="search"
+      bindconfirm="onSearch"
+    />
+    <sl-button
+      wx:if="{{keyword}}"
+      class="clear-btn"
+      text="清空"
+      type="tertiary"
+      size="small"
+      bind:tap="onClear"
+    />
+    <sl-button
+      class="search-btn"
+      icon="icon-search"
+      text="查询"
+      type="primary"
+      size="small"
+      bind:tap="onSearch"
+    />
+  </view>
+</view>

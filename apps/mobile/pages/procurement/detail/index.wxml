@@ -1,0 +1,94 @@
+<sl-page-shell
+  title="采购单详情"
+  subtitle="{{detail.procurement_no || ''}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="基础信息">
+    <view class="row"><text class="label">采购单号</text><text class="value">{{detail.procurement_no || '-'}}</text></view>
+    <view class="row"><text class="label">状态</text><text class="value">{{detail.status || '-'}}</text></view>
+    <view class="row"><text class="label">供应商</text><text class="value">{{detail.supplier_name || detail.buyer_name || '-'}}</text></view>
+    <view class="row"><text class="label">计划吨数</text><text class="value">{{detail.planned_qty || '-'}}</text></view>
+    <view class="row"><text class="label">采购单价</text><text class="value">{{detail.unitPriceDisplay || '-'}}</text></view>
+    <view class="row"><text class="label">采购总额</text><text class="value">{{detail.totalAmountDisplay || '-'}}</text></view>
+  </sl-business-card>
+
+  <sl-business-card title="航次信息">
+    <view class="row"><text class="label">航次号</text><text class="value">{{detail.voyage_no || '-'}}</text></view>
+    <view class="row"><text class="label">船名</text><text class="value">{{detail.ship_name || '-'}}</text></view>
+    <view class="row"><text class="label">MMSI</text><text class="value">{{detail.mmsi || '-'}}</text></view>
+    <view class="row"><text class="label">航次状态</text><text class="value">{{detail.voyage_status || '-'}}</text></view>
+    <view class="actions">
+      <sl-button
+        text="查看航次详情"
+        type="secondary"
+        size="small"
+        disabled="{{!detail.voyage_id}}"
+        bind:tap="onViewVoyage"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="作业信息">
+    <view class="row"><text class="label">开始打砂</text><text class="value">{{detail.sand_start_time || '-'}}</text></view>
+    <view class="row"><text class="label">计划时长（分钟）</text><text class="value">{{detail.planned_duration_min || '-'}}</text></view>
+  </sl-business-card>
+
+  <sl-business-card title="附件资料">
+    <view class="attach-tip">开始打砂前必须上传：采砂单 + 至少 1 张质量照片</view>
+    <sl-attachment-uploader
+      title="采砂单（mining_ticket）"
+      value="{{miningTicketFiles}}"
+      maxCount="{{1}}"
+      readonly="{{detail.status !== 'DISPATCHED' || startSandingLoading}}"
+      bind:change="onMiningTicketChange"
+    />
+    <view class="space"></view>
+    <sl-attachment-uploader
+      title="质量照片（quality_photos）"
+      value="{{qualityPhotoFiles}}"
+      maxCount="{{4}}"
+      accept="image"
+      readonly="{{detail.status !== 'DISPATCHED' || startSandingLoading}}"
+      bind:change="onQualityPhotoChange"
+    />
+  </sl-business-card>
+
+  <sl-business-card title="预警记录">
+    <view wx:if="{{!alerts.length}}" class="empty">暂无预警记录</view>
+    <view wx:for="{{alerts}}" wx:key="id" class="alert-row">
+      <view>
+        <view class="alert-title">{{item.alert_type}} / {{item.stage_code || '-'}}</view>
+        <view class="alert-sub">{{item.status}} / {{item.triggered_at || '-'}}</view>
+      </view>
+      <sl-button
+        wx:if="{{item.status !== 'CLOSED'}}"
+        class="close-btn"
+        text="关闭预警"
+        type="tertiary"
+        size="small"
+        data-id="{{item.id}}"
+        loading="{{closingAlertId === item.id}}"
+        disabled="{{closingAlertId > 0 && closingAlertId !== item.id}}"
+        bind:tap="onCloseAlert"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="审计记录">
+    <sl-audit-timeline items="{{audits}}" />
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    secondaryText="{{detail.voyage_id ? '航次详情' : ''}}"
+    secondaryType="secondary"
+    secondaryDisabled="{{!detail.voyage_id}}"
+    bind:secondarytap="onSecondaryAction"
+    primaryText="{{detail.status === 'DISPATCHED' ? '开始打砂' : (detail.status === 'SANDING' ? '检测超时' : '刷新详情')}}"
+    primaryLoading="{{startSandingLoading || checkTimeoutLoading}}"
+    primaryDisabled="{{startSandingLoading || checkTimeoutLoading}}"
+    bind:primarytap="onPrimaryAction"
+  />
+</sl-page-shell>

@@ -1,0 +1,76 @@
+<sl-page-shell
+  title="可售批次"
+  subtitle="按批次选货并回归来源航次"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  showEmpty="{{!loading && !showError && !list.length}}"
+  emptyText="暂无可展示批次"
+  bind:retry="onRetry"
+>
+  <sl-top-filter-bar
+    slot="filter"
+    filters="{{filters}}"
+    activeKey="{{selectableFilter}}"
+    showSearch="{{true}}"
+    searchPlaceholder="批次号 / 航次号 / 船名"
+    bind:change="onFilterChange"
+    bind:search="onSearch"
+  />
+
+  <view class="condition-row">
+    <picker mode="selector" range="{{batchStatusOptions}}" range-key="label" value="{{batchStatusIndex}}" bindchange="onBatchStatusChange">
+      <view class="condition-pill">{{batchStatusOptions[batchStatusIndex].label}}</view>
+    </picker>
+    <picker mode="selector" range="{{docStatusOptions}}" range-key="label" value="{{docStatusIndex}}" bindchange="onDocStatusChange">
+      <view class="condition-pill">{{docStatusOptions[docStatusIndex].label}}</view>
+    </picker>
+  </view>
+
+  <sl-business-card
+    wx:for="{{list}}"
+    wx:key="id"
+    title="{{item.batchNo}}"
+    subtitle="{{item.voyageNo}} / {{item.shipName}}"
+    extra="{{item.selectable ? '可选' : '不可选'}}"
+  >
+    <view class="row">
+      <text class="row__label">来源航次</text>
+      <text class="row__value">{{item.voyageNo}}</text>
+    </view>
+    <view class="row">
+      <text class="row__label">available_qty</text>
+      <text class="row__value">{{item.availableQty}}</text>
+    </view>
+    <view class="row">
+      <text class="row__label">可售剩余</text>
+      <text class="row__value">{{item.remainingQty}}</text>
+    </view>
+    <view class="row">
+      <text class="row__label">批次状态</text>
+      <sl-status-tag text="{{item.batchStatus}}" type="{{item.statusType}}" />
+    </view>
+    <view class="row">
+      <text class="row__label">资料完整性</text>
+      <sl-status-tag text="{{item.docsCompleteText}}" type="{{item.docsType}}" />
+    </view>
+    <view wx:if="{{!item.selectable}}" class="disabled-reason">不可选原因：{{item.disabledReason}}</view>
+    <view class="row row--action">
+      <text class="row__label">主操作</text>
+      <sl-button
+        class="next-btn"
+        text="用于开单"
+        type="secondary"
+        size="small"
+        data-id="{{item.id}}"
+        bind:tap="onTapUseBatch"
+        disabled="{{!item.selectable}}"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="新建销售单"
+    bind:primarytap="onTapCreate"
+  />
+</sl-page-shell>

@@ -1,0 +1,67 @@
+<sl-page-shell
+  title="审批详情"
+  subtitle="{{approval ? approval.approvalNo : ''}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="审批基本信息">
+    <view class="row"><text class="label">审批单号</text><text class="value">{{approval.approvalNo || '-'}}</text></view>
+    <view class="row"><text class="label">审批类型</text><text class="value">{{approval.approvalType || '-'}}</text></view>
+    <view class="row"><text class="label">目标对象</text><text class="value">{{approval.targetEntityType}}#{{approval.targetEntityId}}</text></view>
+    <view class="row"><text class="label">状态</text><sl-status-tag text="{{approval.status || '-'}}" type="{{approval.status === 'APPROVED' ? 'success' : (approval.status === 'REJECTED' ? 'danger' : 'warning')}}" /></view>
+    <view class="row"><text class="label">申请人</text><text class="value">{{approval.requestedByName || approval.requestedBy || '-'}}</text></view>
+    <view class="row"><text class="label">申请原因</text><text class="value value--multi">{{approval.reason || '-'}}</text></view>
+  </sl-business-card>
+
+  <sl-business-card title="变更前 / 变更后">
+    <sl-approval-diff rows="{{diffRows}}" />
+  </sl-business-card>
+
+  <sl-business-card title="申请附件">
+    <sl-attachment-uploader
+      value="{{attachmentFiles}}"
+      readonly="{{true}}"
+      maxCount="{{20}}"
+      title="附件列表"
+    />
+  </sl-business-card>
+
+  <sl-business-card title="版本生成结果">
+    <view wx:if="{{!linkedVersion}}" class="empty">尚未生成版本</view>
+    <view wx:else>
+      <view class="row"><text class="label">版本类型</text><text class="value">{{approval.linkedVersionType || '-'}}</text></view>
+      <view class="row"><text class="label">版本编号</text><text class="value">#{{linkedVersion.version_no || '-'}}</text></view>
+      <view class="row"><text class="label">版本状态</text><text class="value">{{linkedVersion.status || '-'}}</text></view>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="审批意见">
+    <view class="row"><text class="label">审批结果</text><text class="value">{{approval.reviewOpinion || '-'}}</text></view>
+    <view class="row"><text class="label">审批备注</text><text class="value value--multi">{{approval.reviewComment || '-'}}</text></view>
+    <sl-attachment-uploader
+      value="{{reviewAttachmentFiles}}"
+      readonly="{{true}}"
+      maxCount="{{20}}"
+      title="审批附件"
+    />
+  </sl-business-card>
+
+  <sl-business-card title="审批操作" wx:if="{{canReview}}">
+    <textarea class="comment-input" maxlength="255" value="{{form.reviewComment}}" bindinput="onCommentInput" placeholder="请输入审批意见" />
+    <sl-attachment-uploader
+      value="{{form.reviewAttachmentFiles}}"
+      maxCount="{{6}}"
+      title="上传审批附件"
+      bind:change="onAttachmentChange"
+    />
+    <view class="action-row sl-btn-cluster sl-btn-cluster--spread">
+      <sl-button class="action-btn" text="驳回" type="danger" size="default" loading="{{submitting}}" disabled="{{submitting}}" bind:tap="onReject" />
+      <sl-button class="action-btn" text="通过并生成版本" type="primary" size="default" loading="{{submitting}}" disabled="{{submitting}}" bind:tap="onApprove" />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="审计记录">
+    <sl-audit-timeline items="{{auditItems}}" />
+  </sl-business-card>
+</sl-page-shell>

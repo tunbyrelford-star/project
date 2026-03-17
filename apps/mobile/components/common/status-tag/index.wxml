@@ -1,0 +1,4 @@
+<text class="sl-tag {{className}}">
+  <text wx:if="{{dot}}" class="status-dot"></text>
+  <text>{{text}}</text>
+</text>

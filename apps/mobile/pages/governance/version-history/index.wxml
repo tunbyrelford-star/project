@@ -1,0 +1,45 @@
+<sl-page-shell
+  title="版本历史"
+  subtitle="SettlementVersion / AllocationVersion"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  showEmpty="{{!loading && !showError && !timelineItems.length}}"
+  emptyText="暂无版本记录"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="查询条件">
+    <view class="form-row">
+      <text class="label">目标类型</text>
+      <picker mode="selector" range="{{targetOptions}}" range-key="label" value="{{targetIndex}}" bindchange="onTargetTypeChange">
+        <view class="picker-value">{{targetOptions[targetIndex].label}}</view>
+      </picker>
+    </view>
+    <view class="form-row">
+      <text class="label">目标ID</text>
+      <input class="input" type="number" value="{{targetId}}" bindinput="onTargetIdInput" placeholder="请输入目标ID" />
+    </view>
+    <sl-button class="search-btn" text="查询版本" type="primary" size="small" bind:tap="onSearch" />
+  </sl-business-card>
+
+  <sl-business-card title="版本时间轴">
+    <sl-audit-timeline items="{{timelineItems}}" />
+  </sl-business-card>
+
+  <sl-business-card title="SettlementVersion 列表">
+    <view wx:if="{{!settlementVersions.length}}" class="empty">暂无 SettlementVersion</view>
+    <view wx:for="{{settlementVersions}}" wx:key="id" class="version-row">
+      <view class="row"><text class="label">Voyage</text><text class="value">{{item.voyage_no}} / v{{item.version_no}}</text></view>
+      <view class="row"><text class="label">状态</text><text class="value">{{item.status}}</text></view>
+      <view class="row"><text class="label">收入/成本/利润</text><text class="value">{{item.revenue_amount}} / {{item.expense_total}} / {{item.profit_amount}}</text></view>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="AllocationVersion 列表">
+    <view wx:if="{{!allocationVersions.length}}" class="empty">暂无 AllocationVersion</view>
+    <view wx:for="{{allocationVersions}}" wx:key="id" class="version-row">
+      <view class="row"><text class="label">SalesOrder</text><text class="value">{{item.sales_order_no}} / v{{item.version_no}}</text></view>
+      <view class="row"><text class="label">状态</text><text class="value">{{item.status}}</text></view>
+      <view class="row"><text class="label">原因</text><text class="value">{{item.reason}}</text></view>
+    </view>
+  </sl-business-card>
+</sl-page-shell>

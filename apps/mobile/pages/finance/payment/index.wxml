@@ -1,0 +1,77 @@
+<sl-page-shell
+  title="收款确认"
+  subtitle="{{order ? order.salesOrderNo : ''}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="收款状态">
+    <view class="row"><text class="label">订单状态</text><sl-status-tag text="{{order.status || '-'}}" type="info" /></view>
+    <view class="row"><text class="label">应收状态</text><sl-status-tag text="{{order.arStatus || '-'}}" type="{{order.arStatus === 'FINAL_AR' ? 'success' : 'warning'}}" /></view>
+    <view class="row"><text class="label">净确认收款</text><text class="value">{{receipt ? receipt.netConfirmedAmount : '-'}}</text></view>
+    <view class="row"><text class="label">待收金额</text><text class="value strong">{{receipt ? receipt.outstandingAmount : '-'}}</text></view>
+    <view class="row"><text class="label">收款状态</text><sl-status-tag text="{{receipt ? receipt.receiptStatus : '-'}}" type="{{receipt && receipt.receiptStatus === 'CONFIRMED' ? 'success' : 'warning'}}" /></view>
+  </sl-business-card>
+
+  <sl-business-card title="收款确认（不可撤销）">
+    <view class="warn-banner">
+      重要：确认后不可撤销。若误操作，只能通过“冲正”新增记录处理，不能直接回退状态。
+    </view>
+
+    <view wx:if="{{!actions.canConfirmPayment}}" class="disabled-note">
+      当前不可执行：{{actions.paymentDisabledReason || '条件不足'}}
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">收款金额</text>
+      <input class="form-input" type="digit" value="{{form.paymentAmount}}" data-field="paymentAmount" bindinput="onInput" />
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">收款方式</text>
+      <picker mode="selector" range="{{methodOptions}}" range-key="label" value="{{form.methodIndex}}" bindchange="onMethodChange">
+        <view class="picker-value">{{methodOptions[form.methodIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="form-row form-row--column">
+      <text class="form-label">收款备注</text>
+      <textarea class="remark-input" maxlength="255" data-field="remark" value="{{form.remark}}" bindinput="onInput" placeholder="可填写凭证号、到账说明等" />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="误操作冲正">
+    <view class="form-row form-row--column">
+      <text class="form-label">冲正原因</text>
+      <textarea class="remark-input" maxlength="255" data-field="reversalReason" value="{{form.reversalReason}}" bindinput="onInput" placeholder="例如：重复录入、金额录错等" />
+    </view>
+    <view wx:for="{{payments}}" wx:key="id" class="pay-item">
+      <view class="pay-head">
+        <text>{{item.paymentNo}}</text>
+        <sl-status-tag text="{{item.isReversal ? '冲正记录' : '收款记录'}}" type="{{item.isReversal ? 'warning' : 'success'}}" />
+      </view>
+      <view class="row"><text class="label">金额</text><text class="value">{{item.paymentAmount}}</text></view>
+      <view class="row"><text class="label">方式</text><text class="value">{{item.paymentMethod}}</text></view>
+      <view class="row"><text class="label">状态</text><text class="value">{{item.status}}</text></view>
+      <sl-button
+        wx:if="{{item.canReverse}}"
+        class="reverse-btn"
+        text="冲正该笔"
+        type="danger"
+        size="small"
+        data-id="{{item.id}}"
+        loading="{{reversingPaymentId === item.id}}"
+        disabled="{{reversingPaymentId > 0}}"
+        bind:tap="onReversePayment"
+      />
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    primaryText="确认收款（不可撤销）"
+    primaryLoading="{{submitting}}"
+    primaryDisabled="{{submitting || !actions.canConfirmPayment}}"
+    bind:primarytap="onSubmitPayment"
+  />
+</sl-page-shell>

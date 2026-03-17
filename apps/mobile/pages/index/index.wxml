@@ -1,0 +1,80 @@
+<sl-page-shell
+  title="{{title}}"
+  subtitle="{{roleName}} / {{serverTime}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-top-filter-bar
+    slot="filter"
+    filters="{{roleOptions}}"
+    activeKey="{{roleCode}}"
+    showSearch="{{false}}"
+    bind:change="onRoleChange"
+  />
+
+  <sl-business-card title="当前登录" subtitle="统一登录界面 / 角色化权限生效">
+    <view class="panel-row">
+      <view class="panel-row__left">用户</view>
+      <view class="panel-row__value">{{currentUser.displayName || currentUser.username || '-'}}</view>
+    </view>
+    <view class="panel-row">
+      <view class="panel-row__left">角色</view>
+      <view class="panel-row__value">{{roleName}}</view>
+    </view>
+    <view class="panel-row panel-row--action">
+      <view class="panel-row__left">操作</view>
+      <sl-button class="logout-btn" text="退出登录" type="tertiary" size="small" bind:tap="onLogout" />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="待办工作" subtitle="优先处理高风险事项">
+    <scroll-view scroll-x class="todo-scroll" enable-flex>
+      <view class="todo-grid">
+        <view wx:for="{{todo}}" wx:key="title" class="todo-card">
+          <view class="todo-card__title">{{item.title}}</view>
+          <view class="todo-card__bottom">
+            <text class="todo-card__value {{item.type === 'danger' ? 'todo-card__value--danger' : ''}}">{{item.value}}</text>
+            <sl-status-tag
+              text="{{item.type === 'danger' ? '紧急' : item.type === 'warning' ? '关注' : '正常'}}"
+              type="{{item.type}}"
+              dot="{{true}}"
+            />
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </sl-business-card>
+
+  <sl-business-card title="异常预警" subtitle="必须闭环处理并保留审计留痕">
+    <view wx:if="{{!alerts.length}}" class="panel-empty">当前无异常预警</view>
+    <view wx:for="{{alerts}}" wx:key="title" class="alert-item">
+      <view class="alert-item__title">{{item.title}}</view>
+      <view class="alert-item__desc">{{item.description}}</view>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="统计摘要" subtitle="按角色权限自动脱敏显示">
+    <view wx:for="{{stats}}" wx:key="label" class="panel-row">
+      <view class="panel-row__left">{{item.label}}</view>
+      <view class="panel-row__value">{{item.value}}</view>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="快捷入口" subtitle="面向当前角色高频操作">
+    <view class="quick-grid">
+      <view wx:for="{{quickEntries}}" wx:key="title" class="quick-btn-card sl-tappable" data-path="{{item.path}}" bindtap="onQuickTap">
+        <view class="quick-btn-card__icon quick-btn-card__icon--{{item.iconType}}">
+          <text class="quick-btn-card__icon-text">{{item.iconText}}</text>
+        </view>
+        <text class="quick-btn-card__text">{{item.title}}</text>
+      </view>
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="权限规则提示">
+    <view class="rule-line">确认收款：{{permissions.canConfirmPayment ? '可操作' : '仅财务/管理层可操作'}}</view>
+    <view class="rule-line">锁定态关键变更：{{permissions.lockedChangeRequiresApproval ? '必须走审批流程' : '禁止直接修改'}}</view>
+    <view class="rule-line">审计日志删除：{{permissions.auditLogDeletable ? '允许' : '禁止'}}</view>
+  </sl-business-card>
+</sl-page-shell>

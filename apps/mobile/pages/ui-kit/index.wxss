@@ -1,0 +1,13 @@
+.line-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-row {
+  margin-bottom: 12rpx;
+}
+
+.btn-row:last-child {
+  margin-bottom: 0;
+}
