@@ -34,10 +34,13 @@
   margin-top: var(--sl-space-3);
   display: flex;
   align-items: center;
+  gap: var(--sl-space-2);
+  min-width: 0;
 }
 
 .search-input {
   flex: 1;
+  min-width: 0;
   min-height: var(--sl-hit-area-md);
   border: 1rpx solid var(--sl-color-border);
   border-radius: var(--sl-radius-md);
@@ -49,6 +52,13 @@
 
 .clear-btn,
 .search-btn {
-  min-width: 128rpx;
-  margin: 0 0 0 var(--sl-space-2);
+  flex-shrink: 0;
+}
+
+.clear-btn {
+  min-width: 104rpx;
+}
+
+.search-btn {
+  min-width: 132rpx;
 }

@@ -30,7 +30,7 @@
 .attach__item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   border: 1rpx solid var(--sl-color-border);
   border-radius: var(--sl-radius-md);
   padding: 12rpx 14rpx;
@@ -73,9 +73,55 @@
   color: var(--sl-color-text-muted);
 }
 
+.attach__status {
+  margin-top: 6rpx;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.attach__status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rpx 10rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  background: #eef2f7;
+  color: #607487;
+}
+
+.attach__status-pill.ok {
+  background: #eaf8f1;
+  color: #157347;
+}
+
+.attach__status-pill.fail {
+  background: #feecee;
+  color: #b3261e;
+}
+
+.attach__progress {
+  font-size: var(--sl-font-size-xs);
+  color: var(--sl-color-primary);
+}
+
+.attach__error {
+  font-size: var(--sl-font-size-xs);
+  color: var(--sl-color-danger);
+}
+
+.attach__ops {
+  margin-left: var(--sl-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.attach__retry,
 .attach__remove {
-  margin: 0 0 0 var(--sl-space-2);
-  min-width: 120rpx;
+  min-width: 112rpx;
 }
 
 .attach__btn {

@@ -1,4 +1,4 @@
-const { getStockinBatchDetail, confirmStockin } = require("../../../services/onsite");
+﻿const { getStockinBatchDetail, confirmStockin } = require("../../../services/onsite");
 
 function nowDateTime() {
   const date = new Date();
@@ -29,6 +29,7 @@ Page({
     form: {
       confirmedQty: "",
       stockInTime: nowDateTime(),
+      operatorName: "",
       remark: ""
     }
   },
@@ -59,9 +60,7 @@ Page({
 
   onEvidenceChange(event) {
     const files = event.detail.files || [];
-    this.setData({
-      evidenceFiles: files
-    });
+    this.setData({ evidenceFiles: files });
   },
 
   onSubmit() {
@@ -74,35 +73,45 @@ Page({
       return;
     }
 
-    this.setData({ submitting: true });
-    confirmStockin({
-      batchId: this.data.batchId,
-      confirmedQty: qty,
-      stockInTime: this.data.form.stockInTime,
-      evidenceUrls: (this.data.evidenceFiles || []).map((f) => f.path),
-      remark: this.data.form.remark || ""
-    })
-      .then((res) => {
-        wx.showToast({ title: res.message || "处理成功", icon: "none" });
-        if (res.requiresApproval) {
-          setTimeout(() => wx.navigateBack(), 600);
-          return;
-        }
-        this.setData({
-          form: {
-            ...this.data.form,
-            confirmedQty: ""
-          },
-          evidenceFiles: []
-        });
-        this.loadDetail();
-      })
-      .catch((err) => {
-        wx.showToast({ title: err.message || "提交失败", icon: "none" });
-      })
-      .finally(() => {
-        this.setData({ submitting: false });
-      });
+    wx.showModal({
+      title: "确认入库",
+      content: "确认后将更新批次可用吨数，并写入审计记录。",
+      confirmColor: "#0B3B66",
+      success: (modalRes) => {
+        if (!modalRes.confirm) return;
+
+        this.setData({ submitting: true });
+        confirmStockin({
+          batchId: this.data.batchId,
+          confirmedQty: qty,
+          stockInTime: this.data.form.stockInTime,
+          operatorName: this.data.form.operatorName,
+          evidenceUrls: (this.data.evidenceFiles || []).map((f) => f.path),
+          remark: this.data.form.remark || ""
+        })
+          .then((res) => {
+            wx.showToast({ title: res.message || "提交成功", icon: "none" });
+            if (res.requiresApproval) {
+              setTimeout(() => wx.navigateBack(), 700);
+              return;
+            }
+            this.setData({
+              form: {
+                ...this.data.form,
+                confirmedQty: String(qty)
+              },
+              evidenceFiles: []
+            });
+            this.loadDetail();
+          })
+          .catch((err) => {
+            wx.showToast({ title: err.message || "提交失败", icon: "none" });
+          })
+          .finally(() => {
+            this.setData({ submitting: false });
+          });
+      }
+    });
   },
 
   loadDetail() {
@@ -124,7 +133,7 @@ Page({
             confirmedQty:
               detail.latestConfirmedQty != null
                 ? String(detail.latestConfirmedQty)
-                : this.data.form.confirmedQty
+                : (detail.availableQty != null ? String(detail.availableQty) : this.data.form.confirmedQty)
           },
           loading: false
         });

@@ -31,6 +31,34 @@ function generateNo(prefix) {
   return `${prefix}-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
 }
 
+function parseJsonArray(value) {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function normalizeAttachmentUrls(attachments, fallbackVoucherUrl = "") {
+  const fromList = (Array.isArray(attachments) ? attachments : [])
+    .map((x) => String(x || "").trim())
+    .filter(Boolean);
+  const fallback = String(fallbackVoucherUrl || "").trim();
+  if (fallback && !fromList.includes(fallback)) {
+    fromList.unshift(fallback);
+  }
+  return [...new Set(fromList)];
+}
+
+function differenceStatusByQty(plannedQty, finalQty, diffConfirmed) {
+  const delta = toFixedNum(toNum(finalQty, 0) - toNum(plannedQty, 0), 3);
+  if (Math.abs(delta) <= 0.0005) return "NO_DIFF";
+  return diffConfirmed ? "CONFIRMED" : "PENDING_CONFIRM";
+}
+
 async function writeAuditLog(conn, payload) {
   await conn.query(
     `INSERT INTO audit_logs
@@ -48,6 +76,20 @@ async function writeAuditLog(conn, payload) {
       payload.actorUserId || null
     ]
   );
+}
+
+async function resolveActorUserId(conn, userId) {
+  const actorId = Number(userId || 0);
+  if (!actorId) return null;
+  const [rows] = await conn.query(
+    `SELECT id
+       FROM users
+      WHERE id = ?
+        AND is_void = 0
+      LIMIT 1`,
+    [actorId]
+  );
+  return rows.length ? actorId : null;
 }
 
 async function getReceiptSummary(dbConn, salesOrderId, orderTotalAmount) {
@@ -83,7 +125,7 @@ async function getReceiptSummary(dbConn, salesOrderId, orderTotalAmount) {
 }
 
 function allocateFinalQtyByPlanned(lines, finalTotalQty) {
-  const finalMilli = Math.round(toNum(finalTotalQty, 0) * 1000);
+  const finalCenti = Math.round(toNum(finalTotalQty, 0) * 100);
   const plannedMillis = lines.map((line) => Math.round(toNum(line.planned_qty, 0) * 1000));
   const totalPlannedMilli = plannedMillis.reduce((sum, x) => sum + x, 0);
 
@@ -93,33 +135,44 @@ function allocateFinalQtyByPlanned(lines, finalTotalQty) {
     throw err;
   }
 
-  let remainingMilli = finalMilli;
-  const result = [];
-
-  lines.forEach((line, index) => {
-    let allocatedMilli = 0;
-    if (index === lines.length - 1) {
-      allocatedMilli = remainingMilli;
-    } else {
-      allocatedMilli = Math.floor((finalMilli * plannedMillis[index]) / totalPlannedMilli);
-      remainingMilli -= allocatedMilli;
-    }
-    result.push({
-      lineId: line.id,
-      lineNo: line.line_no,
-      plannedQty: toFixedNum(line.planned_qty, 3),
-      finalQty: toFixedNum(allocatedMilli / 1000, 3),
-      lineUnitPrice: line.line_unit_price == null ? null : toFixedNum(line.line_unit_price, 4),
-      sourceProcurementUnitCost: toFixedNum(line.source_procurement_unit_cost, 4),
-      sourceExpenseUnitCost: toFixedNum(line.source_expense_unit_cost, 4)
+  const plannedRanks = lines
+    .map((line, index) => ({
+      index,
+      lineNo: Number(line.line_no || 0),
+      plannedMilli: plannedMillis[index]
+    }))
+    .sort((a, b) => {
+      if (b.plannedMilli !== a.plannedMilli) return b.plannedMilli - a.plannedMilli;
+      if (a.lineNo !== b.lineNo) return a.lineNo - b.lineNo;
+      return a.index - b.index;
     });
-  });
+  const tailTargetIndex = plannedRanks[0].index;
 
-  return result;
+  const allocatedCentis = plannedMillis.map((plannedMilli) => Math.floor((finalCenti * plannedMilli) / totalPlannedMilli));
+  const allocatedSum = allocatedCentis.reduce((sum, x) => sum + x, 0);
+  const tailCenti = finalCenti - allocatedSum;
+  allocatedCentis[tailTargetIndex] += tailCenti;
+
+  return lines.map((line, index) => ({
+    lineId: line.id,
+    lineNo: line.line_no,
+    plannedQty: toFixedNum(line.planned_qty, 3),
+    finalQty: toFixedNum(allocatedCentis[index] / 100, 2),
+    allocatedFinalQty: toFixedNum(allocatedCentis[index] / 100, 2),
+    tailAdjustmentCenti: index === tailTargetIndex ? tailCenti : 0,
+    lineUnitPrice: line.line_unit_price == null ? null : toFixedNum(line.line_unit_price, 4),
+    sourceProcurementUnitCost: toFixedNum(line.source_procurement_unit_cost, 4),
+    sourceExpenseUnitCost: toFixedNum(line.source_expense_unit_cost, 4)
+  }));
 }
 
 function calcDelta(plannedQty, finalQty) {
   return toFixedNum(toNum(finalQty, 0) - toNum(plannedQty, 0), 3);
+}
+
+function normalizeRequestNo(value) {
+  const text = String(value || "").trim();
+  return text ? text.slice(0, 64) : "";
 }
 
 function parseBool(value) {
@@ -135,6 +188,7 @@ function parseBool(value) {
 router.get("/orders/pending-confirm", async (req, res, next) => {
   try {
     ensureRole(req, ACCESS_ROLES);
+    const isFinanceRole = FINANCE_ROLES.includes(req.user.roleCode);
 
     const keyword = String(req.query.keyword || "").trim();
     const actionFilter = String(req.query.action || "ALL").trim().toUpperCase();
@@ -160,10 +214,12 @@ router.get("/orders/pending-confirm", async (req, res, next) => {
          so.final_total_qty,
          so.total_amount,
          so.qty_diff_confirmed,
+         so.difference_status,
          so.updated_at,
          ws.id AS latest_slip_id,
          ws.status AS latest_slip_status,
          ws.final_total_qty AS latest_slip_final_qty,
+         ws.difference_status AS latest_slip_difference_status,
          pay.incoming_amount,
          pay.reversed_amount
        FROM sales_orders so
@@ -212,17 +268,24 @@ router.get("/orders/pending-confirm", async (req, res, next) => {
         if (!row.latest_slip_id || row.latest_slip_status === "VOID") {
           nextAction = "ENTER_WEIGHING";
           nextActionLabel = "录入磅单";
+        } else if (!isFinanceRole) {
+          nextAction = "VIEW";
+          nextActionLabel = "查看详情";
         } else {
           nextAction = "FINANCE_CONFIRM";
           nextActionLabel = "财务确认";
         }
-      } else if (outstandingAmount > 0) {
+      } else if (outstandingAmount > 0 && isFinanceRole) {
         nextAction = "CONFIRM_PAYMENT";
         nextActionLabel = "确认收款";
       } else {
         nextAction = "DONE";
         nextActionLabel = "已闭环";
       }
+
+      const differenceStatus = row.difference_status
+        || row.latest_slip_difference_status
+        || differenceStatusByQty(plannedTotalQty, finalCandidateQty, Number(row.qty_diff_confirmed || 0) === 1);
 
       return {
         id: row.id,
@@ -236,6 +299,7 @@ router.get("/orders/pending-confirm", async (req, res, next) => {
         deltaQty,
         diffFlag,
         diffConfirmed: Number(row.qty_diff_confirmed || 0) === 1,
+        differenceStatus,
         totalAmount,
         netReceived,
         outstandingAmount,
@@ -271,17 +335,19 @@ router.post("/orders/:id/weighing-slips", async (req, res, next) => {
     const salesOrderId = Number(req.params.id);
     const finalTotalQty = toFixedNum(req.body && req.body.finalTotalQty, 3);
     const voucherUrl = req.body && req.body.voucherUrl ? String(req.body.voucherUrl).trim() : null;
+    const attachments = normalizeAttachmentUrls(req.body && req.body.attachments, voucherUrl || "");
     const remark = req.body && req.body.remark ? String(req.body.remark).trim() : null;
     const customSlipNo = req.body && req.body.slipNo ? String(req.body.slipNo).trim() : "";
 
     if (!salesOrderId) {
-      return res.status(400).json({ message: "Invalid sales order id." });
+      return res.status(400).json({ message: "订单ID无效。" });
     }
     if (finalTotalQty <= 0) {
-      return res.status(400).json({ message: "finalTotalQty must be positive." });
+      return res.status(400).json({ message: "final_total_qty 必须大于 0。" });
     }
 
     const result = await withTransaction(async (conn) => {
+      const actorUserId = await resolveActorUserId(conn, req.user.id);
       const [orderRows] = await conn.query(
         `SELECT id, sales_order_no, status, ar_status, planned_total_qty
          FROM sales_orders
@@ -291,44 +357,65 @@ router.post("/orders/:id/weighing-slips", async (req, res, next) => {
         [salesOrderId]
       );
       if (!orderRows.length) {
-        const err = new Error("Sales order not found.");
+        const err = new Error("销售订单不存在。");
         err.status = 404;
         throw err;
       }
       const order = orderRows[0];
       if (order.ar_status === "FINAL_AR") {
-        const err = new Error("Sales order already FINAL_AR, weighing slip cannot be re-uploaded.");
+        const err = new Error("订单已进入 FINAL_AR，不能重复录入磅单。");
         err.status = 400;
         throw err;
       }
       if (order.status === "VOID") {
-        const err = new Error("VOID sales order cannot upload weighing slip.");
+        const err = new Error("作废订单禁止录入磅单。");
         err.status = 400;
         throw err;
       }
 
       const slipNo = customSlipNo || generateNo("WS");
       const plannedQty = toFixedNum(order.planned_total_qty, 3);
+      const deltaQty = calcDelta(plannedQty, finalTotalQty);
+      const hasDiff = Math.abs(deltaQty) > 0.0005;
+      const differenceStatus = hasDiff ? "PENDING_CONFIRM" : "NO_DIFF";
       const [insertResult] = await conn.query(
         `INSERT INTO weighing_slips
-          (slip_no, sales_order_id, planned_qty, final_total_qty, status, is_final, voucher_url, uploaded_by, remark,
+          (slip_no, weighing_no, sales_order_id, planned_qty, final_total_qty, status, is_final, voucher_url, attachments,
+           difference_confirmed, difference_confirmed_by, difference_confirmed_at, difference_status, uploaded_by, remark,
            created_at, updated_at, created_by, updated_by, is_void)
-         VALUES (?, ?, ?, ?, 'PENDING_CONFIRM', 0, ?, ?, ?, NOW(), NOW(), ?, ?, 0)`,
-        [slipNo, salesOrderId, plannedQty, finalTotalQty, voucherUrl, req.user.id, remark, req.user.id, req.user.id]
+         VALUES (?, ?, ?, ?, ?, 'PENDING_CONFIRM', 0, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?, ?, 0)`,
+        [
+          slipNo,
+          slipNo,
+          salesOrderId,
+          plannedQty,
+          finalTotalQty,
+          voucherUrl,
+          JSON.stringify(attachments),
+          hasDiff ? 0 : 1,
+          hasDiff ? null : actorUserId,
+          hasDiff ? null : new Date(),
+          differenceStatus,
+          actorUserId,
+          remark,
+          actorUserId,
+          actorUserId
+        ]
       );
       const slipId = insertResult.insertId;
 
       await conn.query(
         `UPDATE sales_orders
             SET status = 'PENDING_FINAL_QTY_CONFIRM',
+                difference_status = ?,
                 updated_at = NOW(),
                 updated_by = ?
           WHERE id = ?`,
-        [req.user.id, salesOrderId]
+        [differenceStatus, actorUserId, salesOrderId]
       );
 
       await writeAuditLog(conn, {
-        actorUserId: req.user.id,
+        actorUserId,
         action: "WEIGHING_SLIP_UPLOADED",
         entityType: "WEIGHING_SLIP",
         entityId: slipId,
@@ -337,22 +424,29 @@ router.post("/orders/:id/weighing-slips", async (req, res, next) => {
           salesOrderNo: order.sales_order_no,
           plannedQty,
           finalTotalQty,
-          deltaQty: calcDelta(plannedQty, finalTotalQty),
-          voucherUrl
+          deltaQty,
+          hasDiff,
+          differenceStatus,
+          voucherUrl,
+          attachments
         }
       });
 
       return {
         slipId,
         slipNo,
+        weighingNo: slipNo,
         plannedQty,
         finalTotalQty,
-        deltaQty: calcDelta(plannedQty, finalTotalQty)
+        deltaQty,
+        hasDiff,
+        differenceStatus,
+        confirmStatus: hasDiff ? "待差异确认" : "无差异"
       };
     });
 
     res.json({
-      message: "Weighing slip uploaded.",
+      message: "磅单提交成功。",
       ...result
     });
   } catch (error) {
@@ -369,10 +463,11 @@ router.post("/orders/:id/finance-confirm", async (req, res, next) => {
     const diffConfirmNote = req.body && req.body.diffConfirmNote ? String(req.body.diffConfirmNote).trim() : "";
 
     if (!salesOrderId) {
-      return res.status(400).json({ message: "Invalid sales order id." });
+      return res.status(400).json({ message: "订单ID无效。" });
     }
 
     const result = await withTransaction(async (conn) => {
+      const actorUserId = await resolveActorUserId(conn, req.user.id);
       const [orderRows] = await conn.query(
         `SELECT
            id, sales_order_no, status, ar_status,
@@ -384,13 +479,13 @@ router.post("/orders/:id/finance-confirm", async (req, res, next) => {
         [salesOrderId]
       );
       if (!orderRows.length) {
-        const err = new Error("Sales order not found.");
+        const err = new Error("销售订单不存在。");
         err.status = 404;
         throw err;
       }
       const order = orderRows[0];
       if (order.ar_status === "FINAL_AR") {
-        const err = new Error("Sales order is already FINAL_AR.");
+        const err = new Error("订单已是 FINAL_AR。");
         err.status = 400;
         throw err;
       }
@@ -398,7 +493,7 @@ router.post("/orders/:id/finance-confirm", async (req, res, next) => {
       let slipRows = [];
       if (targetSlipId) {
         [slipRows] = await conn.query(
-          `SELECT id, slip_no, planned_qty, final_total_qty, status, is_final
+          `SELECT id, slip_no, weighing_no, planned_qty, final_total_qty, status, is_final, attachments
            FROM weighing_slips
            WHERE id = ?
              AND sales_order_id = ?
@@ -409,7 +504,7 @@ router.post("/orders/:id/finance-confirm", async (req, res, next) => {
         );
       } else {
         [slipRows] = await conn.query(
-          `SELECT id, slip_no, planned_qty, final_total_qty, status, is_final
+          `SELECT id, slip_no, weighing_no, planned_qty, final_total_qty, status, is_final, attachments
            FROM weighing_slips
            WHERE sales_order_id = ?
              AND is_void = 0
@@ -422,7 +517,7 @@ router.post("/orders/:id/finance-confirm", async (req, res, next) => {
       }
 
       if (!slipRows.length) {
-        const err = new Error("No pending weighing slip found for finance confirmation.");
+        const err = new Error("当前没有可用于财务确认的磅单。");
         err.status = 400;
         throw err;
       }
@@ -433,19 +528,19 @@ router.post("/orders/:id/finance-confirm", async (req, res, next) => {
       const hasDiff = Math.abs(deltaQty) > 0.0005;
 
       if (hasDiff && !diffConfirm) {
-        const err = new Error("Final qty differs from planned qty; manual confirmation is required.");
+        const err = new Error("最终吨数与计划吨数不一致，必须先人工确认差异。");
         err.status = 400;
         throw err;
       }
       if (hasDiff && !diffConfirmNote) {
-        const err = new Error("Difference confirmation note is required.");
+        const err = new Error("差异确认说明不能为空。");
         err.status = 400;
         throw err;
       }
 
       const [lineRows] = await conn.query(
         `SELECT
-           id, line_no, planned_qty, line_unit_price,
+           id, line_no, batch_id, voyage_id, planned_qty, line_unit_price,
            source_procurement_unit_cost, source_expense_unit_cost
          FROM sales_line_items
          WHERE sales_order_id = ?
@@ -455,12 +550,70 @@ router.post("/orders/:id/finance-confirm", async (req, res, next) => {
         [salesOrderId]
       );
       if (!lineRows.length) {
-        const err = new Error("Sales order has no line items.");
+        const err = new Error("销售订单缺少明细行。");
         err.status = 400;
         throw err;
       }
 
       const allocated = allocateFinalQtyByPlanned(lineRows, finalTotalQty);
+      const [versionRows] = await conn.query(
+        `SELECT COALESCE(MAX(version_no), 0) AS max_version
+           FROM allocation_versions
+          WHERE sales_order_id = ?
+            AND is_void = 0
+          FOR UPDATE`,
+        [salesOrderId]
+      );
+      const nextVersionNo = Number(versionRows[0].max_version || 0) + 1;
+      const [currentRows] = await conn.query(
+        `SELECT id
+           FROM allocation_versions
+          WHERE sales_order_id = ?
+            AND is_void = 0
+            AND is_current = 1
+          LIMIT 1
+          FOR UPDATE`,
+        [salesOrderId]
+      );
+      const isCurrent = currentRows.length ? 0 : 1;
+
+      const lineMetaMap = new Map(lineRows.map((x) => [Number(x.id), x]));
+      const allocationPayload = {
+        allocationMethod: "PROPORTIONAL_BY_PLANNED_QTY",
+        roundingRule: "ROUND_2_TAIL_TO_MAX_PLANNED",
+        plannedTotalQty,
+        finalTotalQty,
+        deltaQty,
+        lines: allocated.map((line) => ({
+          lineId: line.lineId,
+          lineNo: line.lineNo,
+          batchId: lineMetaMap.get(Number(line.lineId)).batch_id,
+          voyageId: lineMetaMap.get(Number(line.lineId)).voyage_id,
+          plannedQty: line.plannedQty,
+          allocatedFinalQty: line.allocatedFinalQty,
+          tailAdjustmentCenti: line.tailAdjustmentCenti
+        }))
+      };
+
+      const [allocationInsert] = await conn.query(
+        `INSERT INTO allocation_versions
+          (sales_order_id, version_no, reason, allocation_payload, status, is_current,
+           requested_by, approved_by, approved_at, created_at, updated_at, created_by, updated_by, is_void)
+         VALUES (?, ?, ?, ?, 'EFFECTIVE', ?, ?, ?, NOW(), NOW(), NOW(), ?, ?, 0)`,
+        [
+          salesOrderId,
+          nextVersionNo,
+          "WEIGHING_FINANCE_CONFIRM",
+          JSON.stringify(allocationPayload),
+          isCurrent,
+          actorUserId,
+          actorUserId,
+          actorUserId,
+          actorUserId
+        ]
+      );
+      const allocationVersionId = allocationInsert.insertId;
+
       let finalAmount = 0;
 
       for (const line of allocated) {
@@ -475,13 +628,27 @@ router.post("/orders/:id/finance-confirm", async (req, res, next) => {
         await conn.query(
           `UPDATE sales_line_items
               SET final_qty = ?,
+                  allocated_final_qty = ?,
+                  allocation_version_id = ?,
                   line_revenue_amount = ?,
+                  revenue_amount = ?,
                   line_cost_amount = ?,
+                  cost_amount = ?,
                   status = 'FINALIZED',
                   updated_at = NOW(),
                   updated_by = ?
             WHERE id = ?`,
-          [line.finalQty, lineRevenueAmount, lineCostAmount, req.user.id, line.lineId]
+          [
+            line.finalQty,
+            line.allocatedFinalQty,
+            allocationVersionId,
+            lineRevenueAmount,
+            lineRevenueAmount,
+            lineCostAmount,
+            lineCostAmount,
+            actorUserId,
+            line.lineId
+          ]
         );
       }
 
@@ -489,12 +656,22 @@ router.post("/orders/:id/finance-confirm", async (req, res, next) => {
         `UPDATE weighing_slips
             SET is_final = 0,
                 status = CASE WHEN status = 'VOID' THEN 'VOID' ELSE 'VOID' END,
+                difference_status = CASE
+                  WHEN ABS(COALESCE(delta_qty, 0)) <= 0.0005 THEN 'NO_DIFF'
+                  ELSE 'PENDING_CONFIRM'
+                END,
+                difference_confirmed = CASE
+                  WHEN ABS(COALESCE(delta_qty, 0)) <= 0.0005 THEN 1
+                  ELSE 0
+                END,
+                difference_confirmed_by = NULL,
+                difference_confirmed_at = NULL,
                 updated_at = NOW(),
                 updated_by = ?
           WHERE sales_order_id = ?
             AND is_void = 0
             AND id <> ?`,
-        [req.user.id, salesOrderId, slip.id]
+        [actorUserId, salesOrderId, slip.id]
       );
 
       await conn.query(
@@ -503,10 +680,20 @@ router.post("/orders/:id/finance-confirm", async (req, res, next) => {
                 status = 'CONFIRMED',
                 confirmed_by = ?,
                 confirmed_at = NOW(),
+                difference_status = ?,
+                difference_confirmed = 1,
+                difference_confirmed_by = ?,
+                difference_confirmed_at = NOW(),
                 updated_at = NOW(),
                 updated_by = ?
           WHERE id = ?`,
-        [req.user.id, req.user.id, slip.id]
+        [
+          actorUserId,
+          hasDiff ? "CONFIRMED" : "NO_DIFF",
+          actorUserId,
+          actorUserId,
+          slip.id
+        ]
       );
 
       const qtyDiffConfirmed = hasDiff ? 1 : 0;
@@ -522,6 +709,7 @@ router.post("/orders/:id/finance-confirm", async (req, res, next) => {
                 qty_diff_confirmed_by = ?,
                 qty_diff_confirmed_at = ?,
                 qty_diff_confirm_note = ?,
+                difference_status = ?,
                 ar_confirmed_by = ?,
                 ar_confirmed_at = NOW(),
                 total_amount = ?,
@@ -531,63 +719,73 @@ router.post("/orders/:id/finance-confirm", async (req, res, next) => {
         [
           finalTotalQty,
           slip.id,
-          req.user.id,
+          actorUserId,
           qtyDiffConfirmed,
-          qtyDiffConfirmed ? req.user.id : null,
+          qtyDiffConfirmed ? actorUserId : null,
           qtyDiffConfirmed ? new Date() : null,
           qtyDiffConfirmed ? diffConfirmNote : null,
-          req.user.id,
+          hasDiff ? "CONFIRMED" : "NO_DIFF",
+          actorUserId,
           finalAmount,
-          req.user.id,
+          actorUserId,
           salesOrderId
         ]
       );
 
       await writeAuditLog(conn, {
-        actorUserId: req.user.id,
+        actorUserId,
         action: "FINANCE_CONFIRM_FINAL_QTY",
         entityType: "SALES_ORDER",
         entityId: salesOrderId,
         afterData: {
           salesOrderNo: order.sales_order_no,
           slipId: slip.id,
-          slipNo: slip.slip_no,
+          slipNo: slip.weighing_no || slip.slip_no,
           plannedTotalQty,
           finalTotalQty,
           deltaQty,
           diffConfirmed: hasDiff,
-          diffConfirmNote: hasDiff ? diffConfirmNote : null
+          diffConfirmNote: hasDiff ? diffConfirmNote : null,
+          allocationVersionId,
+          allocationMethod: "PROPORTIONAL_BY_PLANNED_QTY",
+          roundingRule: "ROUND_2_TAIL_TO_MAX_PLANNED",
+          tailAdjustedLineNo: (allocated.find((x) => Number(x.tailAdjustmentCenti || 0) !== 0) || {}).lineNo || null
         }
       });
 
       await writeAuditLog(conn, {
-        actorUserId: req.user.id,
+        actorUserId,
         action: "AR_FINALIZED",
         entityType: "SALES_ORDER",
         entityId: salesOrderId,
         afterData: {
           arStatus: "FINAL_AR",
           status: "READY_FOR_PAYMENT_CONFIRM",
-          finalAmount
+          finalAmount,
+          differenceStatus: hasDiff ? "CONFIRMED" : "NO_DIFF"
         }
       });
 
       return {
         salesOrderId,
         salesOrderNo: order.sales_order_no,
+        differenceStatus: hasDiff ? "CONFIRMED" : "NO_DIFF",
         finalTotalQty,
         plannedTotalQty,
         deltaQty,
         finalAmount,
+        allocationVersionId,
+        allocationMethod: "PROPORTIONAL_BY_PLANNED_QTY",
+        roundingRule: "ROUND_2_TAIL_TO_MAX_PLANNED",
         arStatus: "FINAL_AR",
         status: "READY_FOR_PAYMENT_CONFIRM",
         finalSlipId: slip.id,
-        finalSlipNo: slip.slip_no
+        finalSlipNo: slip.weighing_no || slip.slip_no
       };
     });
 
     res.json({
-      message: "Finance confirmation completed.",
+      message: "财务确认完成，已生成最终结算吨数与归属分摊版本。",
       ...result
     });
   } catch (error) {
@@ -603,20 +801,26 @@ router.post("/orders/:id/payments/confirm", async (req, res, next) => {
     const paymentMethod = String((req.body && req.body.paymentMethod) || "BANK_TRANSFER").toUpperCase();
     const paidAtInput = req.body && req.body.paidAt ? new Date(req.body.paidAt) : new Date();
     const remark = req.body && req.body.remark ? String(req.body.remark).trim() : null;
+    const requestNo = normalizeRequestNo(
+      (req.body && req.body.requestNo)
+      || req.header("x-request-id")
+      || req.header("x-request-no")
+    );
 
     if (!salesOrderId) {
-      return res.status(400).json({ message: "Invalid sales order id." });
+      return res.status(400).json({ message: "订单ID无效。" });
     }
     if (paymentAmount <= 0) {
-      return res.status(400).json({ message: "paymentAmount must be positive." });
+      return res.status(400).json({ message: "收款金额必须大于 0。" });
     }
     if (!["BANK_TRANSFER", "CASH", "OTHER"].includes(paymentMethod)) {
-      return res.status(400).json({ message: "Invalid paymentMethod." });
+      return res.status(400).json({ message: "收款方式不合法。" });
     }
 
     const result = await withTransaction(async (conn) => {
+      const actorUserId = await resolveActorUserId(conn, req.user.id);
       const [orderRows] = await conn.query(
-        `SELECT id, sales_order_no, status, ar_status, total_amount
+        `SELECT id, sales_order_no, status, ar_status, payment_status, total_amount, final_total_qty, unit_price
          FROM sales_orders
          WHERE id = ? AND is_void = 0
          LIMIT 1
@@ -624,18 +828,74 @@ router.post("/orders/:id/payments/confirm", async (req, res, next) => {
         [salesOrderId]
       );
       if (!orderRows.length) {
-        const err = new Error("Sales order not found.");
+        const err = new Error("销售订单不存在。");
         err.status = 404;
         throw err;
       }
       const order = orderRows[0];
       if (order.ar_status !== "FINAL_AR") {
-        const err = new Error("Estimated AR cannot confirm payment. Only FINAL_AR can confirm payment.");
+        const err = new Error("仅 FINAL_AR 状态订单允许确认收款。");
         err.status = 400;
         throw err;
       }
       if (order.status === "VOID") {
-        const err = new Error("VOID sales order cannot confirm payment.");
+        const err = new Error("作废订单禁止确认收款。");
+        err.status = 400;
+        throw err;
+      }
+      if (toNum(order.total_amount, 0) <= 0 || toNum(order.final_total_qty, 0) <= 0 || toNum(order.unit_price, 0) <= 0) {
+        const err = new Error("订单缺少有效结算条件（final_total_qty / unit_price / total_amount）。");
+        err.status = 400;
+        throw err;
+      }
+
+      if (requestNo) {
+        const [existingRows] = await conn.query(
+          `SELECT id, payment_no, payment_amount, status, sales_order_id
+             FROM payments
+            WHERE request_no = ?
+              AND is_void = 0
+            LIMIT 1
+            FOR UPDATE`,
+          [requestNo]
+        );
+        if (existingRows.length) {
+          const existing = existingRows[0];
+          if (Number(existing.sales_order_id) !== Number(salesOrderId)) {
+            const err = new Error("requestNo 已被其他订单占用，请更换后重试。");
+            err.status = 400;
+            throw err;
+          }
+          if (existing.status === "CONFIRMED") {
+            const receipt = await getReceiptSummary(conn, salesOrderId, order.total_amount);
+            const paymentStatus = receipt.receiptStatus === "CONFIRMED"
+              ? "CONFIRMED"
+              : receipt.receiptStatus === "PARTIAL" ? "PARTIAL" : "UNPAID";
+            return {
+              paymentId: existing.id,
+              paymentNo: existing.payment_no,
+              requestNo,
+              salesOrderId,
+              salesOrderNo: order.sales_order_no,
+              receiptStatus: receipt.receiptStatus,
+              netConfirmedAmount: receipt.netConfirmedAmount,
+              outstandingAmount: receipt.outstandingAmount,
+              paymentStatus,
+              orderStatus: order.status,
+              idempotent: true
+            };
+          }
+        }
+      }
+
+      const receiptBefore = await getReceiptSummary(conn, salesOrderId, order.total_amount);
+      if (receiptBefore.outstandingAmount <= 0) {
+        const err = new Error("订单已结清，无需重复确认收款。");
+        err.status = 400;
+        throw err;
+      }
+      if (Math.abs(toFixedNum(paymentAmount - receiptBefore.outstandingAmount, 2)) > 0.009) {
+        const err = new Error(`本次收款金额必须等于待收金额 ${receiptBefore.outstandingAmount}。`);
         err.status = 400;
         throw err;
       }
@@ -644,30 +904,32 @@ router.post("/orders/:id/payments/confirm", async (req, res, next) => {
       const paidAt = Number.isNaN(paidAtInput.getTime()) ? new Date() : paidAtInput;
       const [insertResult] = await conn.query(
         `INSERT INTO payments
-          (payment_no, sales_order_id, payment_amount, payment_method, status, is_irreversible, is_reversal,
+          (payment_no, request_no, sales_order_id, payment_amount, payment_method, status, is_irreversible, is_reversal,
            reversal_of_payment_id, reversal_reason, paid_at, confirmed_by, confirmed_at, remark,
            created_at, updated_at, created_by, updated_by, is_void)
-         VALUES (?, ?, ?, ?, 'CONFIRMED', 1, 0, NULL, NULL, ?, ?, NOW(), ?, NOW(), NOW(), ?, ?, 0)`,
-        [paymentNo, salesOrderId, paymentAmount, paymentMethod, paidAt, req.user.id, remark, req.user.id, req.user.id]
+         VALUES (?, ?, ?, ?, ?, 'CONFIRMED', 1, 0, NULL, NULL, ?, ?, NOW(), ?, NOW(), NOW(), ?, ?, 0)`,
+        [paymentNo, requestNo || null, salesOrderId, paymentAmount, paymentMethod, paidAt, actorUserId, remark, actorUserId, actorUserId]
       );
 
       const receipt = await getReceiptSummary(conn, salesOrderId, order.total_amount);
-      const nextStatus = receipt.outstandingAmount <= 0 && toNum(order.total_amount, 0) > 0
-        ? "COMPLETED"
-        : "READY_FOR_PAYMENT_CONFIRM";
+      const nextStatus = receipt.outstandingAmount <= 0 ? "COMPLETED" : "READY_FOR_PAYMENT_CONFIRM";
+      const paymentStatus = receipt.receiptStatus === "CONFIRMED"
+        ? "CONFIRMED"
+        : receipt.receiptStatus === "PARTIAL" ? "PARTIAL" : "UNPAID";
 
       await conn.query(
         `UPDATE sales_orders
             SET status = ?,
+                payment_status = ?,
                 completed_at = CASE WHEN ? = 'COMPLETED' THEN NOW() ELSE NULL END,
                 updated_at = NOW(),
                 updated_by = ?
           WHERE id = ?`,
-        [nextStatus, nextStatus, req.user.id, salesOrderId]
+        [nextStatus, paymentStatus, nextStatus, actorUserId, salesOrderId]
       );
 
       await writeAuditLog(conn, {
-        actorUserId: req.user.id,
+        actorUserId,
         action: "PAYMENT_CONFIRMED_IRREVERSIBLE",
         entityType: "PAYMENT",
         entityId: insertResult.insertId,
@@ -675,6 +937,7 @@ router.post("/orders/:id/payments/confirm", async (req, res, next) => {
           salesOrderId,
           salesOrderNo: order.sales_order_no,
           paymentNo,
+          requestNo: requestNo || null,
           paymentAmount,
           paymentMethod,
           irreversible: true,
@@ -686,17 +949,20 @@ router.post("/orders/:id/payments/confirm", async (req, res, next) => {
       return {
         paymentId: insertResult.insertId,
         paymentNo,
+        requestNo: requestNo || null,
         salesOrderId,
         salesOrderNo: order.sales_order_no,
         receiptStatus: receipt.receiptStatus,
         netConfirmedAmount: receipt.netConfirmedAmount,
         outstandingAmount: receipt.outstandingAmount,
-        orderStatus: nextStatus
+        paymentStatus,
+        orderStatus: nextStatus,
+        idempotent: false
       };
     });
 
     res.json({
-      message: "Payment confirmed and irreversible.",
+      message: result.idempotent ? "重复请求已处理，返回已有收款记录。" : "收款确认成功（不可撤销）。",
       ...result
     });
   } catch (error) {
@@ -711,13 +977,14 @@ router.post("/payments/:id/reverse", async (req, res, next) => {
     const reason = String((req.body && req.body.reason) || "").trim();
 
     if (!paymentId) {
-      return res.status(400).json({ message: "Invalid payment id." });
+      return res.status(400).json({ message: "收款ID无效。" });
     }
     if (!reason) {
-      return res.status(400).json({ message: "Reversal reason is required." });
+      return res.status(400).json({ message: "冲正原因不能为空。" });
     }
 
     const result = await withTransaction(async (conn) => {
+      const actorUserId = await resolveActorUserId(conn, req.user.id);
       const [paymentRows] = await conn.query(
         `SELECT
            p.id, p.payment_no, p.sales_order_id, p.payment_amount, p.payment_method,
@@ -733,18 +1000,18 @@ router.post("/payments/:id/reverse", async (req, res, next) => {
         [paymentId]
       );
       if (!paymentRows.length) {
-        const err = new Error("Payment not found.");
+        const err = new Error("收款记录不存在。");
         err.status = 404;
         throw err;
       }
       const payment = paymentRows[0];
       if (payment.status !== "CONFIRMED" || Number(payment.is_irreversible || 0) !== 1) {
-        const err = new Error("Only irreversible confirmed payment can be reversed.");
+        const err = new Error("仅不可撤销的已确认收款可冲正。");
         err.status = 400;
         throw err;
       }
       if (Number(payment.is_reversal || 0) === 1) {
-        const err = new Error("Reversal payment cannot be reversed again.");
+        const err = new Error("冲正记录不允许再次冲正。");
         err.status = 400;
         throw err;
       }
@@ -759,7 +1026,7 @@ router.post("/payments/:id/reverse", async (req, res, next) => {
         [paymentId]
       );
       if (existingRows.length) {
-        const err = new Error("Payment already reversed.");
+        const err = new Error("该收款已冲正，无需重复操作。");
         err.status = 400;
         throw err;
       }
@@ -778,10 +1045,10 @@ router.post("/payments/:id/reverse", async (req, res, next) => {
           payment.payment_method,
           payment.id,
           reason,
-          req.user.id,
+          actorUserId,
           `REVERSAL OF ${payment.payment_no}`,
-          req.user.id,
-          req.user.id
+          actorUserId,
+          actorUserId
         ]
       );
 
@@ -789,19 +1056,23 @@ router.post("/payments/:id/reverse", async (req, res, next) => {
       const nextStatus = receipt.outstandingAmount <= 0 && toNum(payment.total_amount, 0) > 0
         ? "COMPLETED"
         : "READY_FOR_PAYMENT_CONFIRM";
+      const paymentStatus = receipt.receiptStatus === "CONFIRMED"
+        ? "CONFIRMED"
+        : receipt.receiptStatus === "PARTIAL" ? "PARTIAL" : "UNPAID";
 
       await conn.query(
         `UPDATE sales_orders
             SET status = ?,
+                payment_status = ?,
                 completed_at = CASE WHEN ? = 'COMPLETED' THEN NOW() ELSE NULL END,
                 updated_at = NOW(),
                 updated_by = ?
           WHERE id = ?`,
-        [nextStatus, nextStatus, req.user.id, payment.sales_order_id]
+        [nextStatus, paymentStatus, nextStatus, actorUserId, payment.sales_order_id]
       );
 
       await writeAuditLog(conn, {
-        actorUserId: req.user.id,
+        actorUserId,
         action: "PAYMENT_REVERSED_BY_OFFSET",
         entityType: "PAYMENT",
         entityId: insertResult.insertId,
@@ -824,12 +1095,13 @@ router.post("/payments/:id/reverse", async (req, res, next) => {
         receiptStatus: receipt.receiptStatus,
         netConfirmedAmount: receipt.netConfirmedAmount,
         outstandingAmount: receipt.outstandingAmount,
+        paymentStatus,
         orderStatus: nextStatus
       };
     });
 
     res.json({
-      message: "Payment reversed by offset record.",
+      message: "冲正成功，已生成冲正记录。",
       ...result
     });
   } catch (error) {
@@ -842,14 +1114,14 @@ router.get("/orders/:id/finance-summary", async (req, res, next) => {
     ensureRole(req, ACCESS_ROLES);
     const salesOrderId = Number(req.params.id);
     if (!salesOrderId) {
-      return res.status(400).json({ message: "Invalid sales order id." });
+      return res.status(400).json({ message: "订单ID无效。" });
     }
 
     const [orderRows] = await pool.query(
       `SELECT
          so.id, so.sales_order_no, so.customer_name, so.status, so.ar_status,
-         so.planned_total_qty, so.final_total_qty, so.total_amount, so.final_weighing_slip_id,
-         so.final_qty_confirmed_at, so.qty_diff_confirmed, so.qty_diff_confirm_note,
+         so.payment_status, so.planned_total_qty, so.final_total_qty, so.total_amount, so.final_weighing_slip_id,
+         so.final_qty_confirmed_at, so.qty_diff_confirmed, so.qty_diff_confirm_note, so.difference_status,
          so.ar_confirmed_at, so.created_at
        FROM sales_orders so
        WHERE so.id = ?
@@ -858,7 +1130,7 @@ router.get("/orders/:id/finance-summary", async (req, res, next) => {
       [salesOrderId]
     );
     if (!orderRows.length) {
-      return res.status(404).json({ message: "Sales order not found." });
+      return res.status(404).json({ message: "销售订单不存在。" });
     }
     const order = orderRows[0];
 
@@ -866,7 +1138,7 @@ router.get("/orders/:id/finance-summary", async (req, res, next) => {
       pool.query(
         `SELECT
            li.id, li.line_no, li.batch_id, li.voyage_id,
-           li.planned_qty, li.final_qty, li.status,
+           li.planned_qty, li.final_qty, li.allocated_final_qty, li.allocation_version_id, li.status,
            li.line_unit_price, li.line_revenue_amount, li.line_cost_amount, li.line_profit_amount,
            li.source_procurement_unit_cost, li.source_expense_unit_cost,
            b.batch_no, v.voyage_no
@@ -880,8 +1152,9 @@ router.get("/orders/:id/finance-summary", async (req, res, next) => {
       ),
       pool.query(
         `SELECT
-           id, slip_no, planned_qty, final_total_qty, delta_qty, status, is_final,
-           voucher_url, remark, confirmed_by, confirmed_at, created_at
+           id, slip_no, weighing_no, planned_qty, final_total_qty, delta_qty, status, is_final,
+           voucher_url, attachments, difference_status, difference_confirmed, difference_confirmed_by, difference_confirmed_at,
+           remark, confirmed_by, confirmed_at, created_at
          FROM weighing_slips
          WHERE sales_order_id = ?
            AND is_void = 0
@@ -890,7 +1163,7 @@ router.get("/orders/:id/finance-summary", async (req, res, next) => {
       ),
       pool.query(
         `SELECT
-           id, payment_no, payment_amount, payment_method, status, is_irreversible,
+           id, payment_no, request_no, payment_amount, payment_method, status, is_irreversible,
            is_reversal, reversal_of_payment_id, reversal_reason, paid_at, confirmed_at, remark, created_at
          FROM payments
          WHERE sales_order_id = ?
@@ -943,6 +1216,8 @@ router.get("/orders/:id/finance-summary", async (req, res, next) => {
       voyageNo: line.voyage_no,
       plannedQty: toFixedNum(line.planned_qty, 3),
       finalQty: line.final_qty == null ? null : toFixedNum(line.final_qty, 3),
+      allocatedFinalQty: line.allocated_final_qty == null ? null : toFixedNum(line.allocated_final_qty, 3),
+      allocationVersionId: line.allocation_version_id || null,
       status: line.status,
       lineUnitPrice: toFixedNum(line.line_unit_price, 4),
       lineRevenueAmount: toFixedNum(line.line_revenue_amount, 2),
@@ -961,6 +1236,8 @@ router.get("/orders/:id/finance-summary", async (req, res, next) => {
         customerName: order.customer_name,
         status: order.status,
         arStatus: order.ar_status,
+        paymentStatus: order.payment_status || receipt.receiptStatus || "UNPAID",
+        differenceStatus: order.difference_status || differenceStatusByQty(order.planned_total_qty, order.final_total_qty, Number(order.qty_diff_confirmed || 0) === 1),
         plannedTotalQty: toFixedNum(order.planned_total_qty, 3),
         finalTotalQty: order.final_total_qty == null ? null : toFixedNum(order.final_total_qty, 3),
         totalAmount: toFixedNum(order.total_amount, 2),
@@ -973,26 +1250,36 @@ router.get("/orders/:id/finance-summary", async (req, res, next) => {
       effectiveSlip: effectiveSlip
         ? {
             id: effectiveSlip.id,
-            slipNo: effectiveSlip.slip_no,
+            slipNo: effectiveSlip.weighing_no || effectiveSlip.slip_no,
             plannedQty: toFixedNum(effectiveSlip.planned_qty, 3),
             finalTotalQty: toFixedNum(effectiveSlip.final_total_qty, 3),
             deltaQty: toFixedNum(effectiveSlip.delta_qty, 3),
             status: effectiveSlip.status,
             isFinal: Number(effectiveSlip.is_final || 0) === 1,
             voucherUrl: effectiveSlip.voucher_url || "",
+            attachments: normalizeAttachmentUrls(parseJsonArray(effectiveSlip.attachments), effectiveSlip.voucher_url || ""),
+            differenceStatus: effectiveSlip.difference_status || differenceStatusByQty(effectiveSlip.planned_qty, effectiveSlip.final_total_qty, Number(effectiveSlip.difference_confirmed || 0) === 1),
+            differenceConfirmed: Number(effectiveSlip.difference_confirmed || 0) === 1,
+            differenceConfirmedBy: effectiveSlip.difference_confirmed_by,
+            differenceConfirmedAt: effectiveSlip.difference_confirmed_at,
             remark: effectiveSlip.remark || "",
             confirmedAt: effectiveSlip.confirmed_at
           }
         : null,
       slips: slips.map((slip) => ({
         id: slip.id,
-        slipNo: slip.slip_no,
+        slipNo: slip.weighing_no || slip.slip_no,
         plannedQty: toFixedNum(slip.planned_qty, 3),
         finalTotalQty: toFixedNum(slip.final_total_qty, 3),
         deltaQty: toFixedNum(slip.delta_qty, 3),
         status: slip.status,
         isFinal: Number(slip.is_final || 0) === 1,
         voucherUrl: slip.voucher_url || "",
+        attachments: normalizeAttachmentUrls(parseJsonArray(slip.attachments), slip.voucher_url || ""),
+        differenceStatus: slip.difference_status || differenceStatusByQty(slip.planned_qty, slip.final_total_qty, Number(slip.difference_confirmed || 0) === 1),
+        differenceConfirmed: Number(slip.difference_confirmed || 0) === 1,
+        differenceConfirmedBy: slip.difference_confirmed_by,
+        differenceConfirmedAt: slip.difference_confirmed_at,
         remark: slip.remark || "",
         confirmedAt: slip.confirmed_at
       })),
@@ -1000,8 +1287,11 @@ router.get("/orders/:id/finance-summary", async (req, res, next) => {
       payments: paymentResult[0].map((pay) => ({
         id: pay.id,
         paymentNo: pay.payment_no,
+        requestNo: pay.request_no || "",
         paymentAmount: toFixedNum(pay.payment_amount, 2),
+        amount: toFixedNum(pay.payment_amount, 2),
         paymentMethod: pay.payment_method,
+        paymentType: pay.payment_method,
         status: pay.status,
         isIrreversible: Number(pay.is_irreversible || 0) === 1,
         isReversal: Number(pay.is_reversal || 0) === 1,
@@ -1009,6 +1299,7 @@ router.get("/orders/:id/finance-summary", async (req, res, next) => {
         reversalReason: pay.reversal_reason || "",
         paidAt: pay.paid_at,
         confirmedAt: pay.confirmed_at,
+        note: pay.remark || "",
         canReverse: isFinance
           && pay.status === "CONFIRMED"
           && Number(pay.is_reversal || 0) === 0
@@ -1029,18 +1320,18 @@ router.get("/orders/:id/finance-summary", async (req, res, next) => {
         financeConfirmDisabledReason: canFinanceConfirm
           ? ""
           : !isFinance
-            ? "Only finance/management can confirm final AR."
+            ? "仅财务/管理层可执行财务确认。"
             : !hasPendingSlip
-              ? "No pending weighing slip to confirm."
-              : "Already FINAL_AR.",
+              ? "当前没有待确认磅单。"
+              : "订单已是 FINAL_AR。",
         canConfirmPayment,
         paymentDisabledReason: canConfirmPayment
           ? ""
           : !isFinance
-            ? "Only finance/management can confirm payment."
+            ? "仅财务/管理层可确认收款。"
             : order.ar_status !== "FINAL_AR"
-              ? "Current AR status is ESTIMATED_AR; payment confirmation is forbidden."
-              : "No outstanding amount."
+              ? "当前为预估应收，禁止确认收款。"
+              : "当前无待收金额。"
       },
       costVisible: isFinance
     });
@@ -1076,6 +1367,7 @@ router.get("/weighing-slips", async (req, res, next) => {
       `SELECT
          ws.id,
          ws.slip_no,
+         ws.weighing_no,
          ws.sales_order_id,
          ws.planned_qty,
          ws.final_total_qty,
@@ -1083,6 +1375,11 @@ router.get("/weighing-slips", async (req, res, next) => {
          ws.status,
          ws.is_final,
          ws.voucher_url,
+         ws.attachments,
+         ws.difference_status,
+         ws.difference_confirmed,
+         ws.difference_confirmed_by,
+         ws.difference_confirmed_at,
          ws.remark,
          ws.confirmed_at,
          ws.created_at,
@@ -1102,7 +1399,7 @@ router.get("/weighing-slips", async (req, res, next) => {
     res.json({
       items: rows.map((row) => ({
         id: row.id,
-        slipNo: row.slip_no,
+        slipNo: row.weighing_no || row.slip_no,
         salesOrderId: row.sales_order_id,
         salesOrderNo: row.sales_order_no,
         customerName: row.customer_name,
@@ -1112,8 +1409,13 @@ router.get("/weighing-slips", async (req, res, next) => {
         finalTotalQty: toFixedNum(row.final_total_qty, 3),
         deltaQty: toFixedNum(row.delta_qty, 3),
         status: row.status,
+        differenceStatus: row.difference_status || differenceStatusByQty(row.planned_qty, row.final_total_qty, Number(row.difference_confirmed || 0) === 1),
+        differenceConfirmed: Number(row.difference_confirmed || 0) === 1,
+        differenceConfirmedBy: row.difference_confirmed_by,
+        differenceConfirmedAt: row.difference_confirmed_at,
         isFinal: Number(row.is_final || 0) === 1,
         voucherUrl: row.voucher_url || "",
+        attachments: normalizeAttachmentUrls(parseJsonArray(row.attachments), row.voucher_url || ""),
         remark: row.remark || "",
         confirmedAt: row.confirmed_at,
         createdAt: row.created_at,
@@ -1139,6 +1441,7 @@ router.get("/weighing-slips/:id", async (req, res, next) => {
         `SELECT
            ws.id,
            ws.slip_no,
+           ws.weighing_no,
            ws.sales_order_id,
            ws.planned_qty,
            ws.final_total_qty,
@@ -1146,6 +1449,11 @@ router.get("/weighing-slips/:id", async (req, res, next) => {
            ws.status,
            ws.is_final,
            ws.voucher_url,
+           ws.attachments,
+           ws.difference_status,
+           ws.difference_confirmed,
+           ws.difference_confirmed_by,
+           ws.difference_confirmed_at,
            ws.remark,
            ws.uploaded_by,
            ws.confirmed_by,
@@ -1193,7 +1501,7 @@ router.get("/weighing-slips/:id", async (req, res, next) => {
     res.json({
       detail: {
         id: row.id,
-        slipNo: row.slip_no,
+        slipNo: row.weighing_no || row.slip_no,
         salesOrderId: row.sales_order_id,
         salesOrderNo: row.sales_order_no,
         customerName: row.customer_name,
@@ -1203,8 +1511,13 @@ router.get("/weighing-slips/:id", async (req, res, next) => {
         finalTotalQty: toFixedNum(row.final_total_qty, 3),
         deltaQty: toFixedNum(row.delta_qty, 3),
         status: row.status,
+        differenceStatus: row.difference_status || differenceStatusByQty(row.planned_qty, row.final_total_qty, Number(row.difference_confirmed || 0) === 1),
+        differenceConfirmed: Number(row.difference_confirmed || 0) === 1,
+        differenceConfirmedBy: row.difference_confirmed_by,
+        differenceConfirmedAt: row.difference_confirmed_at,
         isFinal: Number(row.is_final || 0) === 1,
         voucherUrl: row.voucher_url || "",
+        attachments: normalizeAttachmentUrls(parseJsonArray(row.attachments), row.voucher_url || ""),
         remark: row.remark || "",
         uploadedBy: row.uploaded_by,
         confirmedBy: row.confirmed_by,
@@ -1270,6 +1583,7 @@ router.get("/payments", async (req, res, next) => {
       `SELECT
          p.id,
          p.payment_no,
+         p.request_no,
          p.sales_order_id,
          p.payment_amount,
          p.payment_method,
@@ -1287,6 +1601,7 @@ router.get("/payments", async (req, res, next) => {
          so.customer_name,
          so.status AS order_status,
          so.ar_status,
+         so.payment_status,
          rev.id AS reversed_by_payment_id
        FROM payments p
        JOIN sales_orders so ON so.id = p.sales_order_id AND so.is_void = 0
@@ -1302,13 +1617,17 @@ router.get("/payments", async (req, res, next) => {
       items: rows.map((row) => ({
         id: row.id,
         paymentNo: row.payment_no,
+        requestNo: row.request_no || "",
         salesOrderId: row.sales_order_id,
         salesOrderNo: row.sales_order_no,
         customerName: row.customer_name,
         orderStatus: row.order_status,
         arStatus: row.ar_status,
+        paymentStatus: row.payment_status || "UNPAID",
         paymentAmount: toFixedNum(row.payment_amount, 2),
+        amount: toFixedNum(row.payment_amount, 2),
         paymentMethod: row.payment_method,
+        paymentType: row.payment_method,
         status: row.status,
         isIrreversible: Number(row.is_irreversible || 0) === 1,
         isReversal: Number(row.is_reversal || 0) === 1,
@@ -1317,6 +1636,7 @@ router.get("/payments", async (req, res, next) => {
         paidAt: row.paid_at,
         confirmedAt: row.confirmed_at,
         remark: row.remark || "",
+        note: row.remark || "",
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         canReverse:
@@ -1337,7 +1657,7 @@ router.get("/payments/:id", async (req, res, next) => {
 
     const paymentId = Number(req.params.id || 0);
     if (!paymentId) {
-      return res.status(400).json({ message: "Invalid payment id." });
+      return res.status(400).json({ message: "收款ID无效。" });
     }
 
     const [detailRows, auditRows] = await Promise.all([
@@ -1345,6 +1665,7 @@ router.get("/payments/:id", async (req, res, next) => {
         `SELECT
            p.id,
            p.payment_no,
+           p.request_no,
            p.sales_order_id,
            p.payment_amount,
            p.payment_method,
@@ -1363,6 +1684,7 @@ router.get("/payments/:id", async (req, res, next) => {
            so.customer_name,
            so.status AS order_status,
            so.ar_status,
+           so.payment_status,
            so.total_amount,
            rev.id AS reversed_by_payment_id
          FROM payments p
@@ -1387,7 +1709,7 @@ router.get("/payments/:id", async (req, res, next) => {
     ]);
 
     if (!detailRows[0].length) {
-      return res.status(404).json({ message: "Payment order not found." });
+      return res.status(404).json({ message: "收款单不存在。" });
     }
 
     const row = detailRows[0][0];
@@ -1397,13 +1719,17 @@ router.get("/payments/:id", async (req, res, next) => {
       detail: {
         id: row.id,
         paymentNo: row.payment_no,
+        requestNo: row.request_no || "",
         salesOrderId: row.sales_order_id,
         salesOrderNo: row.sales_order_no,
         customerName: row.customer_name,
         orderStatus: row.order_status,
         arStatus: row.ar_status,
+        paymentStatus: row.payment_status || "UNPAID",
         paymentAmount: toFixedNum(row.payment_amount, 2),
+        amount: toFixedNum(row.payment_amount, 2),
         paymentMethod: row.payment_method,
+        paymentType: row.payment_method,
         status: row.status,
         isIrreversible: Number(row.is_irreversible || 0) === 1,
         isReversal: Number(row.is_reversal || 0) === 1,
@@ -1413,6 +1739,7 @@ router.get("/payments/:id", async (req, res, next) => {
         confirmedBy: row.confirmed_by,
         confirmedAt: row.confirmed_at,
         remark: row.remark || "",
+        note: row.remark || "",
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         canReverse:
@@ -1437,3 +1764,4 @@ router.get("/payments/:id", async (req, res, next) => {
 });
 
 module.exports = router;
+

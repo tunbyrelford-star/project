@@ -1,10 +1,10 @@
 <sl-page-shell
-  title="Stock-In Orders"
-  subtitle="Inventory stock-in confirmation orders"
+  title="入库单"
+  subtitle="库存入库确认单据"
   loading="{{loading}}"
   showError="{{showError}}"
   showEmpty="{{!loading && !showError && !list.length}}"
-  emptyText="No stock-in orders"
+  emptyText="暂无入库单"
   bind:retry="onRetry"
 >
   <sl-top-filter-bar
@@ -12,7 +12,7 @@
     filters="{{filters}}"
     activeKey="{{activeStatus}}"
     showSearch="{{true}}"
-    searchPlaceholder="Stock-in no / Batch / Voyage / Ship"
+    searchPlaceholder="入库单号 / 批次号 / 航次号 / 船名"
     bind:change="onFilterChange"
     bind:search="onSearch"
   />
@@ -22,27 +22,27 @@
     wx:key="id"
     title="{{item.stockInNo}}"
     subtitle="{{item.batchNo}} / {{item.voyageNo}}"
-    extra="{{item.status}}"
+    extra="{{item.statusText}}"
     extraTone="{{item.statusTone}}"
     clickable
     data-id="{{item.id}}"
     bind:cardtap="onTapDetail"
   >
-    <view class="row"><text class="label">Batch</text><text class="value">{{item.batchNo}}</text></view>
-    <view class="row"><text class="label">Voyage</text><text class="value">{{item.voyageNo}}</text></view>
-    <view class="row"><text class="label">Ship</text><text class="value">{{item.shipName}}</text></view>
-    <view class="row"><text class="label">Confirmed Qty</text><text class="value">{{item.confirmedQty}}</text></view>
-    <view class="row"><text class="label">Version</text><text class="value">v{{item.versionNo}}</text></view>
-    <view class="row"><text class="label">Stock-In Time</text><text class="value">{{item.stockInTime || '-'}}</text></view>
+    <view class="row"><text class="label">批次</text><text class="value">{{item.batchNo}}</text></view>
+    <view class="row"><text class="label">航次</text><text class="value">{{item.voyageNo}}</text></view>
+    <view class="row"><text class="label">船名</text><text class="value">{{item.shipName}}</text></view>
+    <view class="row"><text class="label">确认吨数</text><text class="value">{{item.confirmedQty}}</text></view>
+    <view class="row"><text class="label">版本</text><text class="value">v{{item.versionNo}}</text></view>
+    <view class="row"><text class="label">入库时间</text><text class="value">{{item.stockInTime || '-'}}</text></view>
     <view class="actions">
-      <sl-button class="btn" text="Detail" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
-      <sl-button class="btn" text="Confirm Page" type="tertiary" size="small" data-batch-id="{{item.batchId}}" bind:tap="onTapConfirm" />
+      <sl-button class="btn" text="详情" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
+      <sl-button class="btn" text="确认页" type="tertiary" size="small" data-batch-id="{{item.batchId}}" bind:tap="onTapConfirm" />
     </view>
   </sl-business-card>
 
   <sl-bottom-action-bar
     slot="footer"
-    primaryText="Stock-In Todo"
+    primaryText="入库待办"
     bind:primarytap="onTapTodo"
   />
 </sl-page-shell>

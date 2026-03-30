@@ -7,23 +7,42 @@
   <view wx:if="{{!files.length}}" class="attach__empty">暂无附件</view>
 
   <view class="attach__list">
-    <view wx:for="{{files}}" wx:key="path" class="attach__item">
-      <view class="attach__meta sl-tappable" bindtap="onPreview" data-path="{{item.path}}">
+    <view wx:for="{{files}}" wx:key="id" class="attach__item">
+      <view class="attach__meta sl-tappable" bindtap="onPreview" data-index="{{index}}">
         <view class="attach__icon"></view>
         <view class="attach__text">
           <view class="attach__name">{{item.name}}</view>
           <view class="attach__size">{{item.sizeText}}</view>
+          <view class="attach__status">
+            <text
+              class="attach__status-pill {{item.status === 'uploaded' ? 'ok' : ''}} {{item.status === 'failed' ? 'fail' : ''}}"
+            >
+              {{item.statusText}}
+            </text>
+            <text wx:if="{{item.status === 'uploading'}}" class="attach__progress">{{item.progress}}%</text>
+            <text wx:if="{{item.status === 'failed' && item.error}}" class="attach__error">{{item.error}}</text>
+          </view>
         </view>
       </view>
-      <sl-button
-        wx:if="{{!readonly}}"
-        class="attach__remove"
-        text="移除"
-        type="tertiary"
-        size="small"
-        data-index="{{index}}"
-        bind:tap="onRemove"
-      />
+      <view wx:if="{{!readonly}}" class="attach__ops">
+        <sl-button
+          wx:if="{{item.status === 'failed'}}"
+          class="attach__retry"
+          text="重传"
+          type="secondary"
+          size="small"
+          data-index="{{index}}"
+          bindtap="onRetry"
+        />
+        <sl-button
+          class="attach__remove"
+          text="删除"
+          type="tertiary"
+          size="small"
+          data-index="{{index}}"
+          bindtap="onRemove"
+        />
+      </view>
     </view>
   </view>
 
@@ -34,6 +53,6 @@
     type="secondary"
     size="default"
     block="{{true}}"
-    bind:tap="onChoose"
+    bindtap="onChoose"
   />
 </view>

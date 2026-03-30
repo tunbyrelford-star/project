@@ -1,4 +1,4 @@
-const { fetchOrderCenterSummary } = require("../../../services/order-center");
+﻿const { fetchOrderCenterSummary } = require("../../../services/order-center");
 const { PERMISSION_CODES } = require("../../../constants/rbac");
 const { hasPermission, getCurrentRoleCode } = require("../../../utils/rbac");
 const { navigateByUrl } = require("../../../utils/navigation");
@@ -6,8 +6,8 @@ const { navigateByUrl } = require("../../../utils/navigation");
 const ENTRY_DEFINITIONS = [
   {
     key: "procurement",
-    name: "Procurement",
-    description: "Create and manage procurement orders.",
+    name: "采购单",
+    description: "创建并管理采购单据。",
     path: "/pages/procurement/list/index",
     counterKey: "procurement",
     sourceKey: "procurement",
@@ -15,8 +15,8 @@ const ENTRY_DEFINITIONS = [
   },
   {
     key: "voyage",
-    name: "Voyage",
-    description: "Track voyage-level order progress.",
+    name: "航次单",
+    description: "跟踪航次单据进度。",
     path: "/pages/voyage/voyage",
     counterKey: "voyage",
     sourceKey: "procurement",
@@ -24,8 +24,8 @@ const ENTRY_DEFINITIONS = [
   },
   {
     key: "lightering",
-    name: "Lightering",
-    description: "Handle lightering tasks and follow-ups.",
+    name: "过驳单",
+    description: "处理过驳任务及后续跟进。",
     path: "/pages/onsite/lightering-list/index",
     counterKey: "lightering",
     sourceKey: "onsite",
@@ -33,8 +33,8 @@ const ENTRY_DEFINITIONS = [
   },
   {
     key: "stockIn",
-    name: "Stock-In",
-    description: "Confirm stock-in orders from onsite flow.",
+    name: "入库单",
+    description: "确认现场流程产生的入库单。",
     path: "/pages/onsite/stockin-list/index",
     counterKey: "stockIn",
     sourceKey: "onsite",
@@ -42,8 +42,8 @@ const ENTRY_DEFINITIONS = [
   },
   {
     key: "salesOrder",
-    name: "Sales Order",
-    description: "Manage sales orders and line items.",
+    name: "销售订单",
+    description: "管理销售订单及明细项。",
     path: "/pages/sales/orders/index",
     counterKey: "salesOrder",
     sourceKey: "sales",
@@ -51,8 +51,8 @@ const ENTRY_DEFINITIONS = [
   },
   {
     key: "weighingSlip",
-    name: "Weighing Slip",
-    description: "Enter and confirm weighing documents.",
+    name: "磅单",
+    description: "录入并确认磅单数据。",
     path: "/pages/finance/weighing-list/index",
     counterKey: "weighingSlip",
     sourceKey: "finance",
@@ -60,8 +60,8 @@ const ENTRY_DEFINITIONS = [
   },
   {
     key: "paymentOrder",
-    name: "Payment",
-    description: "Confirm receivables and payment closure.",
+    name: "收款单",
+    description: "确认应收回款并完成收款闭环。",
     path: "/pages/finance/payment-list/index",
     counterKey: "paymentOrder",
     sourceKey: "finance",
@@ -69,8 +69,8 @@ const ENTRY_DEFINITIONS = [
   },
   {
     key: "expense",
-    name: "Expense",
-    description: "Create and process expense documents.",
+    name: "费用单",
+    description: "录入并处理费用单据。",
     path: "/pages/onsite/expense-list/index",
     counterKey: "expense",
     sourceKey: "onsite",
@@ -79,15 +79,15 @@ const ENTRY_DEFINITIONS = [
 ];
 
 function formatTimeText(isoString) {
-  if (!isoString) return "Updated: -";
+  if (!isoString) return "更新时间：-";
   const date = new Date(isoString);
-  if (Number.isNaN(date.getTime())) return "Updated: -";
+  if (Number.isNaN(date.getTime())) return "更新时间：-";
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   const hh = String(date.getHours()).padStart(2, "0");
   const mm = String(date.getMinutes()).padStart(2, "0");
-  return `Updated: ${y}-${m}-${d} ${hh}:${mm}`;
+  return `更新时间：${y}-${m}-${d} ${hh}:${mm}`;
 }
 
 function toCount(value) {
@@ -104,7 +104,7 @@ Page({
     summary: {
       moduleCount: 0,
       totalTodo: 0,
-      updatedAtText: "Updated: -"
+      updatedAtText: "更新时间：-"
     }
   },
 
@@ -128,7 +128,7 @@ Page({
     const path = String(event.currentTarget.dataset.path || "");
     const enabled = Number(event.currentTarget.dataset.enabled || 0) === 1;
     if (!enabled) {
-      wx.showToast({ title: "No permission for this entry", icon: "none" });
+      wx.showToast({ title: "当前入口无权限", icon: "none" });
       return;
     }
     if (!path) return;
@@ -175,7 +175,7 @@ Page({
             todoCount: count,
             todoText: enabled ? (fetchOk ? String(count) : "-") : "--",
             todoTone: !enabled || !fetchOk ? "default" : count > 0 ? "warning" : "success",
-            actionText: enabled ? "Open" : "No Access"
+            actionText: enabled ? "进入" : "无权限"
           };
         });
 
@@ -203,7 +203,7 @@ Page({
           todoCount: 0,
           todoText: permissionMap[entry.key] ? "-" : "--",
           todoTone: "default",
-          actionText: permissionMap[entry.key] ? "Open" : "No Access"
+          actionText: permissionMap[entry.key] ? "进入" : "无权限"
         }));
 
         const visibleEntries = entries.filter((item) => item.enabled);
@@ -214,7 +214,7 @@ Page({
           summary: {
             moduleCount: visibleEntries.length,
             totalTodo: 0,
-            updatedAtText: "Updated: -"
+            updatedAtText: "更新时间：-"
           }
         });
       });

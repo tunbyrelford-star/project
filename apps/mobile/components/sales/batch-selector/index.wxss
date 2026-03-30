@@ -57,7 +57,7 @@
 }
 
 .search-btn {
-  min-width: 120rpx;
+  min-width: 138rpx;
 }
 
 .loading {
@@ -108,7 +108,7 @@
 }
 
 .select-btn {
-  min-width: 120rpx;
+  min-width: 132rpx;
   margin: 0;
 }
 

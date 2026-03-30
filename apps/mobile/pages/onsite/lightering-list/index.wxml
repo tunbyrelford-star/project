@@ -1,10 +1,10 @@
 <sl-page-shell
-  title="Lightering Orders"
-  subtitle="Lightering task orders and empty-confirm workflow"
+  title="过驳单"
+  subtitle="过驳作业与卸空确认流程"
   loading="{{loading}}"
   showError="{{showError}}"
   showEmpty="{{!loading && !showError && !list.length}}"
-  emptyText="No lightering orders"
+  emptyText="暂无过驳单"
   bind:retry="onRetry"
 >
   <sl-top-filter-bar
@@ -12,7 +12,7 @@
     filters="{{filters}}"
     activeKey="{{activeStatus}}"
     showSearch="{{true}}"
-    searchPlaceholder="Order no / Voyage no / Ship"
+    searchPlaceholder="过驳单号 / 航次号 / 船名"
     bind:change="onFilterChange"
     bind:search="onSearch"
   />
@@ -22,22 +22,22 @@
     wx:key="id"
     title="{{item.lighteringNo}}"
     subtitle="{{item.voyageNo}} / {{item.shipName}}"
-    extra="{{item.status}}"
+    extra="{{item.statusText}}"
     extraTone="{{item.statusTone}}"
     clickable
     data-id="{{item.id}}"
     bind:cardtap="onTapDetail"
   >
-    <view class="row"><text class="label">Voyage</text><text class="value">{{item.voyageNo}}</text></view>
-    <view class="row"><text class="label">Ship</text><text class="value">{{item.shipName}}</text></view>
-    <view class="row"><text class="label">Main Ship Empty</text><text class="value">{{item.isMainShipEmpty ? 'Yes' : 'No'}}</text></view>
-    <view class="row"><text class="label">Started At</text><text class="value">{{item.startedAt || '-'}}</text></view>
-    <view class="row"><text class="label">Confirmed At</text><text class="value">{{item.confirmedAt || '-'}}</text></view>
+    <view class="row"><text class="label">航次</text><text class="value">{{item.voyageNo}}</text></view>
+    <view class="row"><text class="label">船名</text><text class="value">{{item.shipName}}</text></view>
+    <view class="row"><text class="label">主船卸空</text><text class="value">{{item.unloadText}}</text></view>
+    <view class="row"><text class="label">开始时间</text><text class="value">{{item.startedAt || '-'}}</text></view>
+    <view class="row"><text class="label">确认时间</text><text class="value">{{item.confirmedAt || '-'}}</text></view>
     <view class="actions">
-      <sl-button class="btn" text="Detail" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
+      <sl-button class="btn" text="详情" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
       <sl-button
         class="btn"
-        text="Confirm Empty"
+        text="确认卸空"
         type="primary"
         size="small"
         data-id="{{item.id}}"
@@ -50,7 +50,7 @@
 
   <sl-bottom-action-bar
     slot="footer"
-    primaryText="Onsite Todo"
+    primaryText="现场待办"
     bind:primarytap="onTapTaskBoard"
   />
 </sl-page-shell>

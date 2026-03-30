@@ -1,18 +1,37 @@
 const { listPayments } = require("../../../services/finance");
 
 const STATUS_FILTERS = [
-  { key: "ALL", label: "All" },
-  { key: "CONFIRMED", label: "Confirmed" }
+  { key: "ALL", label: "全部" },
+  { key: "CONFIRMED", label: "已确认" }
 ];
 
 const TYPE_OPTIONS = [
-  { label: "All Types", value: "ALL" },
-  { label: "Normal", value: "NORMAL" },
-  { label: "Reversal", value: "REVERSAL" }
+  { label: "全部类型", value: "ALL" },
+  { label: "正常收款", value: "NORMAL" },
+  { label: "冲正记录", value: "REVERSAL" }
 ];
 
-function tone(isReversal) {
-  return isReversal ? "warning" : "success";
+function methodLabel(code) {
+  if (code === "BANK_TRANSFER") return "银行转账";
+  if (code === "CASH") return "现金";
+  if (code === "OTHER") return "其他";
+  return code || "-";
+}
+
+function typeTag(item) {
+  return item.isReversal ? "冲正" : "正常";
+}
+
+function typeTone(item) {
+  return item.isReversal ? "warning" : "success";
+}
+
+function statusText(status) {
+  const code = String(status || "").toUpperCase();
+  if (code === "CONFIRMED") return "已确认";
+  if (code === "DRAFT") return "草稿";
+  if (code === "VOID") return "作废";
+  return code || "-";
 }
 
 Page({
@@ -76,8 +95,11 @@ Page({
       .then((res) => {
         const list = (res.items || []).map((item) => ({
           ...item,
-          typeTag: item.isReversal ? "REVERSAL" : "NORMAL",
-          typeTone: tone(item.isReversal)
+          statusText: statusText(item.status),
+          paymentMethodText: methodLabel(item.paymentMethod),
+          typeTag: typeTag(item),
+          typeTone: typeTone(item),
+          confirmedAtText: item.confirmedAt || "-"
         }));
         this.setData({ list, loading: false });
       })
@@ -86,4 +108,3 @@ Page({
       });
   }
 });
-

@@ -11,6 +11,7 @@ const pool = mysql.createPool({
   user: process.env.DB_USER || "root",
   password: resolvedPassword,
   database: process.env.DB_NAME || "sand_logistics",
+  charset: "utf8mb4",
   connectionLimit: 10,
   waitForConnections: true,
   decimalNumbers: true,

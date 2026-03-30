@@ -1,24 +1,24 @@
 <sl-page-shell
-  title="Order Center"
+  title="订单中心"
   subtitle="{{summary.updatedAtText}}"
   loading="{{loading}}"
   showError="{{showError}}"
   bind:retry="onRetry"
 >
-  <sl-business-card title="Order Workspace" subtitle="Unified entry for all order documents">
+  <sl-business-card title="订单工作台" subtitle="统一管理各类订单单据">
     <view class="summary-grid">
       <view class="summary-item">
-        <text class="summary-item__label">Accessible Modules</text>
+        <text class="summary-item__label">可用模块</text>
         <text class="summary-item__value">{{summary.moduleCount}}</text>
       </view>
       <view class="summary-item">
-        <text class="summary-item__label">Total Pending</text>
+        <text class="summary-item__label">待处理总数</text>
         <text class="summary-item__value">{{summary.totalTodo}}</text>
       </view>
     </view>
   </sl-business-card>
 
-  <sl-business-card title="Document Entries" subtitle="Procurement, onsite, sales and finance orders">
+  <sl-business-card title="单据入口" subtitle="覆盖采购、现场、销售与财务链路">
     <view
       wx:for="{{entries}}"
       wx:key="key"
@@ -28,14 +28,14 @@
         <view class="entry-card__name">{{item.name}}</view>
         <view class="entry-card__desc">{{item.description}}</view>
         <view wx:if="{{item.enabled && !item.fetchOk}}" class="entry-card__hint">
-          Pending count unavailable. Tap Open to continue.
+          待办数量暂不可用，可先进入模块处理。
         </view>
         <view wx:if="{{!item.enabled}}" class="entry-card__hint">
-          This role has no access to this module.
+          当前角色暂无该模块权限。
         </view>
       </view>
       <view class="entry-card__side">
-        <view class="entry-card__todo-label">Pending</view>
+        <view class="entry-card__todo-label">待处理</view>
         <sl-status-tag text="{{item.todoText}}" type="{{item.todoTone}}" />
         <sl-button
           class="entry-card__action"

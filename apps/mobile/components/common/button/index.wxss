@@ -1,4 +1,8 @@
 .sl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
   margin: 0;
   width: auto;
   min-width: 0;
@@ -12,7 +16,9 @@
   box-sizing: border-box;
   font-size: var(--sl-btn-font-md);
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
   transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
 }
 
@@ -58,6 +64,16 @@
   width: var(--sl-btn-height-md);
   min-height: var(--sl-btn-height-md);
   padding: 0;
+}
+
+.sl-btn--small.sl-btn--icon-only {
+  width: var(--sl-btn-height-sm);
+  min-height: var(--sl-btn-height-sm);
+}
+
+.sl-btn--large.sl-btn--icon-only {
+  width: var(--sl-btn-height-lg);
+  min-height: var(--sl-btn-height-lg);
 }
 
 .sl-btn--primary {
@@ -120,24 +136,31 @@
 }
 
 .sl-btn__content {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--sl-btn-icon-gap);
   width: 100%;
+  min-width: 0;
 }
 
 .sl-btn__text {
+  display: block;
+  min-width: 0;
   line-height: 1.2;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sl-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--sl-btn-icon-md);
+  height: var(--sl-btn-icon-md);
   line-height: 1;
-  display: inline-block;
   vertical-align: middle;
-  width: 1.15em;
-  height: 1.15em;
   background-color: currentColor; 
   mask-size: contain;
   mask-repeat: no-repeat;
@@ -145,4 +168,41 @@
   -webkit-mask-size: contain;
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: center;
+}
+
+.sl-btn__icon--left {
+  margin-right: var(--sl-btn-icon-gap);
+}
+
+.sl-btn__icon--right {
+  order: 2;
+  margin-left: var(--sl-btn-icon-gap);
+}
+
+.sl-btn__icon--text {
+  width: auto;
+  height: auto;
+  background-color: transparent;
+  mask: none;
+  -webkit-mask: none;
+  line-height: 1;
+}
+
+.sl-btn--icon-only .sl-btn__icon--left,
+.sl-btn--icon-only .sl-btn__icon--right {
+  margin: 0;
+}
+
+.sl-btn--small .sl-btn__icon {
+  width: var(--sl-btn-icon-sm);
+  height: var(--sl-btn-icon-sm);
+}
+
+.sl-btn--large .sl-btn__icon {
+  width: var(--sl-btn-icon-lg);
+  height: var(--sl-btn-icon-lg);
+}
+
+.sl-btn.is-loading .sl-btn__icon {
+  display: none;
 }

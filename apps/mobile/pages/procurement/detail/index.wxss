@@ -79,3 +79,46 @@
   margin: 0;
   min-width: 130rpx;
 }
+
+.timeout-expense-box {
+  margin-top: 12rpx;
+  border: 1rpx solid var(--sl-color-border);
+  border-radius: var(--sl-radius-md);
+  padding: 12rpx;
+  background: #f8fbff;
+}
+
+.timeout-form-toggle {
+  margin-top: 16rpx;
+}
+
+.timeout-form {
+  margin-top: 12rpx;
+  padding-top: 8rpx;
+}
+
+.row-input {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8rpx;
+  min-height: 0;
+}
+
+.picker-value,
+.form-input {
+  min-height: 70rpx;
+  border: 1rpx solid var(--sl-color-border);
+  border-radius: var(--sl-radius-md);
+  padding: 0 20rpx;
+  color: var(--sl-color-text-primary);
+  font-size: var(--sl-font-size-sm);
+  background: #fff;
+  display: flex;
+  align-items: center;
+}
+
+.timeout-form-actions {
+  margin-top: 14rpx;
+  display: flex;
+  justify-content: flex-end;
+}

@@ -6,14 +6,14 @@
   errorText="{{errorText}}"
   showEmpty="{{!loading && !showError && !list.length}}"
   emptyText="暂无现场待办任务"
-  bind:retry="onRetry"
+  bindretry="onRetry"
 >
   <sl-top-filter-bar
     slot="filter"
     filters="{{filters}}"
     activeKey="{{activeType}}"
     showSearch="{{false}}"
-    bind:change="onFilterChange"
+    bindchange="onFilterChange"
   />
 
   <sl-business-card
@@ -49,7 +49,7 @@
         data-voyage-id="{{item.voyageId}}"
         loading="{{item.taskType === 'WAIT_EMPTY_CONFIRM' && actionTaskKey === item.taskKey}}"
         disabled="{{actionTaskKey && actionTaskKey !== item.taskKey}}"
-        catch:tap="onTapAction"
+        catchtap="onTapAction"
       />
     </view>
   </sl-business-card>

@@ -7,6 +7,7 @@ const {
 const ACTION_CODES = {
   START_SANDING: "START_SANDING",
   CHECK_TIMEOUT: "CHECK_TIMEOUT",
+  HANDLE_TIMEOUT: "HANDLE_TIMEOUT",
   VIEW_DETAIL: "VIEW_DETAIL"
 };
 
@@ -30,16 +31,19 @@ function toStatusMeta(status) {
   }
 }
 
-function inferActionCode(status) {
+function inferActionCode(status, hasOpenAlert) {
   const code = String(status || "").toUpperCase();
   if (code === "DISPATCHED") return ACTION_CODES.START_SANDING;
-  if (code === "SANDING") return ACTION_CODES.CHECK_TIMEOUT;
+  if (code === "SANDING") {
+    return hasOpenAlert ? ACTION_CODES.HANDLE_TIMEOUT : ACTION_CODES.CHECK_TIMEOUT;
+  }
   return ACTION_CODES.VIEW_DETAIL;
 }
 
 function actionLabel(actionCode) {
   if (actionCode === ACTION_CODES.START_SANDING) return "开始打砂";
   if (actionCode === ACTION_CODES.CHECK_TIMEOUT) return "检测超时";
+  if (actionCode === ACTION_CODES.HANDLE_TIMEOUT) return "去处理超时";
   return "查看详情";
 }
 
@@ -115,6 +119,11 @@ Page({
       return;
     }
 
+    if (actionCode === ACTION_CODES.HANDLE_TIMEOUT) {
+      wx.navigateTo({ url: `/pages/procurement/detail/index?id=${id}&openTimeout=1` });
+      return;
+    }
+
     if (this.data.actionLoadingId) return;
     this.setData({ actionLoadingId: id });
 
@@ -138,6 +147,12 @@ Page({
                 : "超时预警已存在"
               : "当前未超时";
           wx.showToast({ title: toast, icon: "none" });
+
+          if (res && res.triggered) {
+            setTimeout(() => {
+              wx.navigateTo({ url: `/pages/procurement/detail/index?id=${id}&openTimeout=1` });
+            }, 300);
+          }
         }
         this.loadList();
       })
@@ -162,8 +177,8 @@ Page({
       .then((res) => {
         const list = (res.items || []).map((item) => {
           const statusMeta = toStatusMeta(item.status);
-          const actionCode = inferActionCode(item.status);
-          const hasAlert = Boolean(item.alert_id && item.alert_status !== "CLOSED");
+          const hasOpenAlert = Boolean(item.alert_id && item.alert_status !== "CLOSED");
+          const actionCode = inferActionCode(item.status, hasOpenAlert);
           return {
             ...item,
             procurementNo: item.procurement_no || item.procurementNo || "-",
@@ -172,8 +187,8 @@ Page({
             plannedQty: item.planned_qty == null ? "-" : item.planned_qty,
             statusText: statusMeta.text,
             statusType: statusMeta.type,
-            abnormalText: hasAlert ? "异常" : "正常",
-            abnormalType: hasAlert ? "danger" : "success",
+            abnormalText: hasOpenAlert ? "异常" : "正常",
+            abnormalType: hasOpenAlert ? "danger" : "success",
             durationText: toDurationText(item.work_duration_min),
             nextActionCode: actionCode,
             nextActionText: actionLabel(actionCode)

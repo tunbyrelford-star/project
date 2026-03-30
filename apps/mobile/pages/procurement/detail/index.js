@@ -2,6 +2,7 @@ const {
   getProcurementDetail,
   startSanding,
   checkSandingTimeout,
+  handleSandingTimeout,
   closeAlert
 } = require("../../../services/procurement");
 
@@ -40,28 +41,46 @@ function toFiles(paths, prefix) {
     }));
 }
 
+function toNumber(value, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
 Page({
   data: {
     id: 0,
+    pendingOpenTimeout: false,
     loading: true,
     showError: false,
-    detail: null,
+    detail: {},
     alerts: [],
     audits: [],
     miningTicketFiles: [],
     qualityPhotoFiles: [],
     startSandingLoading: false,
     checkTimeoutLoading: false,
-    closingAlertId: 0
+    closingAlertId: 0,
+    timeoutInfo: null,
+    timeoutExpenses: [],
+    timeoutFormVisible: false,
+    timeoutSubmitting: false,
+    timeoutForm: {
+      calcMode: "HOURLY_RATE",
+      handlingNote: "",
+      ratePerHour: "150",
+      manualAmount: "",
+      calculationNote: ""
+    }
   },
 
   onLoad(options) {
     const id = Number(options.id || 0);
+    const pendingOpenTimeout = String(options.openTimeout || "") === "1";
     if (!id) {
       wx.showToast({ title: "参数错误", icon: "none" });
       return;
     }
-    this.setData({ id });
+    this.setData({ id, pendingOpenTimeout });
     this.loadDetail();
   },
 
@@ -111,6 +130,85 @@ Page({
     this.setData({ qualityPhotoFiles: files });
   },
 
+  onToggleTimeoutForm() {
+    this.setData({ timeoutFormVisible: !this.data.timeoutFormVisible });
+  },
+
+  onTimeoutInput(event) {
+    const field = String((event.currentTarget.dataset || {}).field || "").trim();
+    if (!field) return;
+    this.setData({ [`timeoutForm.${field}`]: event.detail.value || "" });
+  },
+
+  onTimeoutModeChange(event) {
+    const value = Number((event.detail || {}).value || 0);
+    this.setData({ "timeoutForm.calcMode": value === 1 ? "MANUAL" : "HOURLY_RATE" });
+  },
+
+  onHandleTimeout() {
+    if (this.data.timeoutSubmitting) return;
+
+    const timeoutInfo = this.data.timeoutInfo || {};
+    if (!timeoutInfo.isOvertime) {
+      wx.showToast({ title: "当前未超时", icon: "none" });
+      return;
+    }
+
+    const form = this.data.timeoutForm || {};
+    const calcMode = String(form.calcMode || "HOURLY_RATE").toUpperCase();
+    const handlingNote = String(form.handlingNote || "").trim();
+    const calculationNote = String(form.calculationNote || "").trim();
+    const ratePerHour = toNumber(form.ratePerHour, 0);
+    const manualAmount = toNumber(form.manualAmount, 0);
+
+    if (!handlingNote) {
+      wx.showToast({ title: "请填写处理说明", icon: "none" });
+      return;
+    }
+    if (calcMode === "HOURLY_RATE" && ratePerHour <= 0) {
+      wx.showToast({ title: "请填写有效费率", icon: "none" });
+      return;
+    }
+    if (calcMode === "MANUAL" && manualAmount < 0) {
+      wx.showToast({ title: "请填写有效金额", icon: "none" });
+      return;
+    }
+
+    this.setData({ timeoutSubmitting: true });
+    handleSandingTimeout(this.data.id, {
+      calcMode,
+      handlingNote,
+      calculationNote,
+      ratePerHour: calcMode === "HOURLY_RATE" ? ratePerHour : null,
+      manualAmount: calcMode === "MANUAL" ? manualAmount : null
+    })
+      .then((res) => {
+        wx.showToast({
+          title: (res && res.message) || "超时处理完成",
+          icon: "none"
+        });
+        this.setData({
+          timeoutFormVisible: false,
+          timeoutForm: {
+            ...this.data.timeoutForm,
+            handlingNote: "",
+            calculationNote: "",
+            manualAmount: ""
+          }
+        });
+        this.loadDetail();
+      })
+      .catch((err) => {
+        wx.showToast({
+          title: (err && err.message) || "处理失败",
+          icon: "none"
+        });
+      })
+      .finally(() => {
+        this.setData({ timeoutSubmitting: false });
+      });
+  },
+
   onStartSanding() {
     if (this.data.startSandingLoading) return;
 
@@ -154,12 +252,10 @@ Page({
     this.setData({ checkTimeoutLoading: true });
     checkSandingTimeout(this.data.id)
       .then((res) => {
-        const toast =
-          res && res.triggered
-            ? res.createdNew
-              ? "已触发超时预警"
-              : "超时预警已存在"
-            : "当前未超时";
+        let toast = "当前未超时";
+        if (res && res.triggered) {
+          toast = res.createdNew ? "已触发超时预警" : "超时预警已存在";
+        }
         wx.showToast({ title: toast, icon: "none" });
         this.loadDetail();
       })
@@ -175,7 +271,7 @@ Page({
   },
 
   onCloseAlert(event) {
-    const alertId = Number(event.currentTarget.dataset.id || 0);
+    const alertId = Number((event.currentTarget.dataset || {}).id || 0);
     if (!alertId || this.data.closingAlertId) return;
 
     wx.showModal({
@@ -183,8 +279,9 @@ Page({
       content: "确认关闭当前预警并写入处理记录？",
       success: (result) => {
         if (!result.confirm) return;
+
         this.setData({ closingAlertId: alertId });
-        closeAlert(alertId, "采购详情页关闭预警")
+        closeAlert(alertId, "采购详情页手动关闭预警")
           .then((res) => {
             wx.showToast({
               title: (res && res.message) || "预警已关闭",
@@ -209,6 +306,7 @@ Page({
     this.setData({ loading: true, showError: false });
     return getProcurementDetail(this.data.id)
       .then((res) => {
+        const requestOpenTimeout = Boolean(this.data.pendingOpenTimeout);
         const detail = res.detail || {};
         const qualityPhotos = parseArray(detail.quality_photos || detail.quality_photo_urls);
         const miningTicket = String(detail.mining_ticket || detail.mining_ticket_url || "").trim();
@@ -224,7 +322,12 @@ Page({
           note: toAuditText(item.after_data || item.before_data || "")
         }));
 
-        this.setData({
+        const currentRate = toNumber(
+          res.timeout && res.timeout.latestExpense && res.timeout.latestExpense.overtimeRate,
+          toNumber(this.data.timeoutForm.ratePerHour, 150)
+        );
+
+        const nextData = {
           detail: {
             ...detail,
             unitPriceDisplay:
@@ -234,9 +337,35 @@ Page({
           },
           alerts: res.alerts || [],
           audits,
+          timeoutInfo: res.timeout || null,
+          timeoutExpenses: res.timeoutExpenses || [],
           miningTicketFiles,
           qualityPhotoFiles,
+          pendingOpenTimeout: false,
+          timeoutForm: {
+            ...this.data.timeoutForm,
+            ratePerHour: String(currentRate)
+          },
           loading: false
+        };
+
+        if (requestOpenTimeout) {
+          const timeout = res.timeout || null;
+          nextData.timeoutFormVisible = Boolean(
+            timeout && timeout.isOvertime && !timeout.hasOvertimeExpense
+          );
+        }
+
+        this.setData(nextData, () => {
+          if (!requestOpenTimeout) return;
+          const timeout = res.timeout || null;
+          if (!timeout || !timeout.isOvertime) {
+            wx.showToast({ title: "当前无可处理超时", icon: "none" });
+            return;
+          }
+          if (timeout.hasOvertimeExpense) {
+            wx.showToast({ title: "该超时已处理，可查看费用记录", icon: "none" });
+          }
         });
       })
       .catch(() => {

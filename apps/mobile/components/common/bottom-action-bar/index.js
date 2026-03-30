@@ -2,6 +2,8 @@ Component({
   properties: {
     primaryText: { type: String, value: "确定" },
     secondaryText: { type: String, value: "" },
+    primaryIcon: { type: String, value: "" },
+    secondaryIcon: { type: String, value: "" },
     primaryDisabled: { type: Boolean, value: false },
     secondaryDisabled: { type: Boolean, value: false },
     primaryLoading: { type: Boolean, value: false },

@@ -62,6 +62,9 @@ page {
   --sl-btn-font-sm: 22rpx;
   --sl-btn-font-md: 24rpx;
   --sl-btn-font-lg: 26rpx;
+  --sl-btn-icon-sm: 24rpx;
+  --sl-btn-icon-md: 28rpx;
+  --sl-btn-icon-lg: 32rpx;
 
   --sl-btn-padding-sm: 0 20rpx;
   --sl-btn-padding-md: 0 26rpx;

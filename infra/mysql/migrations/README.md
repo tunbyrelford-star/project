@@ -61,6 +61,26 @@ This folder contains additive, non-destructive SQL migrations.
   - Aligns sales order and line-item field naming (`order_no`, `source_voyage_id`, `locked_qty`, `allocated_final_qty`, `cost_amount`, `revenue_amount`, `gross_profit`) with backward-compatible backfill.
 - `20260316_012_phase4_sales_order_lineitem_rollback.sql`
   - Safe rollback marker for phase 4 sales-order alignment.
+- `20260329_014_phase_encoding_cleanup_up.sql`
+  - Cleans historical mojibake (`?`) text rows in `ships` / `procurements` with backup tables.
+- `20260329_014_phase_encoding_cleanup_rollback.sql`
+  - Restores cleaned rows from backup tables and marks migration rollback.
+- `20260329_015_phase_lightering_enhancement_up.sql`
+  - Adds lightering business fields (ship/location/time/operator/attachments/unload flag), indexes, FK and backfill.
+- `20260329_015_phase_lightering_enhancement_rollback.sql`
+  - Safe rollback marker for phase 015.
+- `20260329_016_phase_stockin_enhancement_up.sql`
+  - Adds stock-in governance fields (`voyage_id/procurement_id/before_qty/after_qty/operator/voucher`) and batch confirmation metadata.
+- `20260329_016_phase_stockin_enhancement_rollback.sql`
+  - Safe rollback marker for phase 016.
+- `20260329_017_phase_weighing_enhancement_up.sql`
+  - Adds weighing difference-tracking fields (`weighing_no`, `attachments`, `difference_*`) and order-level `difference_status`, with backfill.
+- `20260329_017_phase_weighing_enhancement_rollback.sql`
+  - Safe rollback marker for phase 017.
+- `20260329_018_phase_payment_enhancement_up.sql`
+  - Adds payment idempotency field (`payments.request_no`) and order-level payment summary (`sales_orders.payment_status`) with backfill.
+- `20260329_018_phase_payment_enhancement_rollback.sql`
+  - Safe rollback marker for phase 018.
 
 ## Execution
 
@@ -77,6 +97,11 @@ mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20
 mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260316_010_phase2_order_system_design_up.sql
 mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260316_011_phase3_procurement_voyage_chain_up.sql
 mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260316_012_phase4_sales_order_lineitem_up.sql
+mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260329_014_phase_encoding_cleanup_up.sql
+mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260329_015_phase_lightering_enhancement_up.sql
+mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260329_016_phase_stockin_enhancement_up.sql
+mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260329_017_phase_weighing_enhancement_up.sql
+mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260329_018_phase_payment_enhancement_up.sql
 ```
 
 Rollback (safe mode):
@@ -94,4 +119,9 @@ mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20
 mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260316_010_phase2_order_system_design_rollback.sql
 mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260316_011_phase3_procurement_voyage_chain_rollback.sql
 mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260316_012_phase4_sales_order_lineitem_rollback.sql
+mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260329_014_phase_encoding_cleanup_rollback.sql
+mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260329_015_phase_lightering_enhancement_rollback.sql
+mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260329_016_phase_stockin_enhancement_rollback.sql
+mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260329_017_phase_weighing_enhancement_rollback.sql
+mysql -h 127.0.0.1 -P 3306 -u root -p sand_logistics < infra/mysql/migrations/20260329_018_phase_payment_enhancement_rollback.sql
 ```

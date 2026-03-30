@@ -126,7 +126,12 @@ page {
 .sl-btn-cluster {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--sl-space-3);
+}
+
+.sl-btn-cluster > sl-button {
+  min-width: 0;
 }
 
 .sl-btn-cluster--spread {

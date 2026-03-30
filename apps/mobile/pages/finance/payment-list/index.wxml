@@ -1,10 +1,10 @@
 <sl-page-shell
-  title="Payment Orders"
-  subtitle="Receipts and reversal records"
+  title="收款单"
+  subtitle="收款记录与冲正记录"
   loading="{{loading}}"
   showError="{{showError}}"
   showEmpty="{{!loading && !showError && !list.length}}"
-  emptyText="No payment orders"
+  emptyText="暂无收款单"
   bind:retry="onRetry"
 >
   <sl-top-filter-bar
@@ -12,7 +12,7 @@
     filters="{{filters}}"
     activeKey="{{activeStatus}}"
     showSearch="{{true}}"
-    searchPlaceholder="Payment no / Sales order / Customer"
+    searchPlaceholder="收款单号 / 销售单号 / 客户"
     bind:change="onFilterChange"
     bind:search="onSearch"
   />
@@ -28,25 +28,25 @@
     wx:key="id"
     title="{{item.paymentNo}}"
     subtitle="{{item.salesOrderNo}} / {{item.customerName}}"
-    extra="{{item.status}}"
+    extra="{{item.statusText}}"
     extraTone="{{item.typeTone}}"
     clickable
     data-id="{{item.id}}"
     bind:cardtap="onTapDetail"
   >
-    <view class="row"><text class="label">Sales Order</text><text class="value">{{item.salesOrderNo}}</text></view>
-    <view class="row"><text class="label">Amount</text><text class="value">{{item.paymentAmount}}</text></view>
-    <view class="row"><text class="label">Method</text><text class="value">{{item.paymentMethod}}</text></view>
-    <view class="row"><text class="label">Type</text><sl-status-tag text="{{item.typeTag}}" type="{{item.typeTone}}" /></view>
-    <view class="row"><text class="label">Paid At</text><text class="value">{{item.paidAt || '-'}}</text></view>
+    <view class="row"><text class="label">销售订单</text><text class="value">{{item.salesOrderNo}}</text></view>
+    <view class="row"><text class="label">金额</text><text class="value">{{item.paymentAmount}}</text></view>
+    <view class="row"><text class="label">收款方式</text><text class="value">{{item.paymentMethodText}}</text></view>
+    <view class="row"><text class="label">类型</text><sl-status-tag text="{{item.typeTag}}" type="{{item.typeTone}}" /></view>
+    <view class="row"><text class="label">收款时间</text><text class="value">{{item.paidAt || '-'}}</text></view>
     <view class="actions">
-      <sl-button class="btn" text="Detail" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
+      <sl-button class="btn" text="详情" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
     </view>
   </sl-business-card>
 
   <sl-bottom-action-bar
     slot="footer"
-    primaryText="Pending Receipt Actions"
+    primaryText="收款待办"
     bind:primarytap="onTapPending"
   />
 </sl-page-shell>

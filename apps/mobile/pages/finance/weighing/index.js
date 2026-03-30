@@ -69,15 +69,23 @@ Page({
       return;
     }
 
-    const firstVoucher = (this.data.voucherFiles || [])[0];
+    const voucherFiles = this.data.voucherFiles || [];
+    const attachments = voucherFiles.map((item) => item.path).filter(Boolean);
+    const firstVoucher = voucherFiles[0];
+
     this.setData({ submitting: true });
     createWeighingSlip(order.id, {
       finalTotalQty,
       voucherUrl: firstVoucher ? firstVoucher.path : "",
+      attachments,
       remark: this.data.form.remark
     })
-      .then(() => {
-        wx.showToast({ title: "磅单已提交", icon: "success" });
+      .then((res) => {
+        const hasDiff = !!res.hasDiff;
+        wx.showToast({
+          title: hasDiff ? "已提交，存在差异待确认" : "磅单提交成功",
+          icon: hasDiff ? "none" : "success"
+        });
         wx.redirectTo({ url: `/pages/finance/confirm/index?orderId=${order.id}` });
       })
       .catch((err) => {

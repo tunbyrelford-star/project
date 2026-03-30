@@ -1,10 +1,13 @@
-const express = require("express");
+﻿const express = require("express");
 const { pool, withTransaction } = require("../db");
 
 const router = express.Router();
 
 const ACCESS_ROLES = ["SUPER_ADMIN", "DISPATCHER", "ONSITE_SPECIALIST", "FINANCE_MGMT"];
 const EXPENSE_AMOUNT_VISIBLE_ROLES = ["SUPER_ADMIN", "ONSITE_SPECIALIST", "FINANCE_MGMT"];
+const LIGHTERING_STATUS_SET = new Set(["DRAFT", "IN_PROGRESS", "MAIN_EMPTY_CONFIRMED", "VOID"]);
+const LIGHTERING_TRANSFER_TYPE_SET = new Set(["SHIP_TO_SHIP", "SHIP_TO_SHORE"]);
+const LIGHTERING_RECEIVER_TYPE_SET = new Set(["OWNED", "LEASED", "OTHER"]);
 
 function ensureRole(req, allowedRoles) {
   if (!allowedRoles.includes(req.user.roleCode)) {
@@ -43,6 +46,66 @@ function parseJsonArray(value) {
   } catch (_error) {
     return [];
   }
+}
+
+function sanitizeText(value, maxLen = 255) {
+  const text = String(value == null ? "" : value).trim();
+  if (!text) return "";
+  return text.slice(0, maxLen);
+}
+
+function toNullableDateTime(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
+
+function toBool01(value) {
+  if (value === true || value === 1 || value === "1") return 1;
+  return 0;
+}
+
+function normalizeLighteringStatus(status, fallback = "DRAFT") {
+  const next = String(status || "").trim().toUpperCase();
+  if (LIGHTERING_STATUS_SET.has(next)) return next;
+  return fallback;
+}
+
+function normalizeTransferType(value) {
+  const next = String(value || "").trim().toUpperCase();
+  if (LIGHTERING_TRANSFER_TYPE_SET.has(next)) return next;
+  return "SHIP_TO_SHIP";
+}
+
+function normalizeReceiverType(value) {
+  const next = String(value || "").trim().toUpperCase();
+  if (LIGHTERING_RECEIVER_TYPE_SET.has(next)) return next;
+  return "OWNED";
+}
+
+function normalizeAttachmentUrls(value) {
+  return parseJsonArray(value)
+    .map((x) => sanitizeText(x, 512))
+    .filter(Boolean);
+}
+
+function normalizeLighteringItems(items = []) {
+  return (Array.isArray(items) ? items : [])
+    .map((item, index) => {
+      const qty = Number(item.transferQty ?? item.transfer_qty);
+      const normalizedQty = Number.isFinite(qty) && qty > 0 ? qty : 0;
+      return {
+        lineNo: Number(item.lineNo || item.line_no || index + 1),
+        cargoName: sanitizeText(item.cargoName ?? item.cargo_name, 128) || "鐮傜煶",
+        transferQty: normalizedQty,
+        receiverName: sanitizeText(item.receiverName ?? item.receiver_name, 128) || null,
+        receiverShipName: sanitizeText(item.receiverShipName ?? item.receiver_ship_name, 128) || null,
+        remark: sanitizeText(item.remark, 255) || null
+      };
+    })
+    .filter((item) => item.transferQty > 0)
+    .map((item, index) => ({ ...item, lineNo: index + 1 }));
 }
 
 async function writeAuditLog(conn, payload) {
@@ -205,6 +268,7 @@ router.get("/tasks", async (req, res, next) => {
            l.id AS lightering_id,
            l.status AS lightering_status,
            l.is_main_ship_empty,
+           l.unload_empty_confirmed,
            COALESCE(l.started_at, l.created_at) AS task_time,
            v.id AS voyage_id,
            v.voyage_no,
@@ -213,7 +277,7 @@ router.get("/tasks", async (req, res, next) => {
          JOIN voyages v ON v.id = l.voyage_id AND v.is_void = 0
          LEFT JOIN ships s ON s.id = v.ship_id AND s.is_void = 0
          WHERE l.is_void = 0
-           AND (l.status = 'DRAFT' OR (l.status = 'IN_PROGRESS' AND l.is_main_ship_empty = 0))
+           AND (l.status = 'DRAFT' OR (l.status = 'IN_PROGRESS' AND COALESCE(l.unload_empty_confirmed, l.is_main_ship_empty) = 0))
          ORDER BY task_time ASC
          LIMIT 200`
       ),
@@ -283,7 +347,8 @@ router.get("/tasks", async (req, res, next) => {
 
     lighteringRows[0].forEach((row) => {
       const elapsedHour = toFixedNumber((Date.now() - new Date(row.task_time).getTime()) / 36e5, 0);
-      const isEmptyConfirm = row.lightering_status === "IN_PROGRESS" && Number(row.is_main_ship_empty) === 0;
+      const unloadConfirmed = Number(row.unload_empty_confirmed != null ? row.unload_empty_confirmed : row.is_main_ship_empty);
+      const isEmptyConfirm = row.lightering_status === "IN_PROGRESS" && unloadConfirmed === 0;
       items.push({
         taskType: isEmptyConfirm ? "WAIT_EMPTY_CONFIRM" : "WAIT_LIGHTERING",
         taskId: row.lightering_id,
@@ -327,10 +392,10 @@ router.get("/tasks", async (req, res, next) => {
         voyageId: row.voyage_id,
         voyageNo: row.voyage_no,
         shipName: row.ship_name || "-",
-        currentStep: "待录费用",
+        currentStep: "寰呭綍璐圭敤",
         statusTag: row.voyage_status,
         urgency,
-        primaryAction: "录入费用",
+        primaryAction: "褰曞叆璐圭敤",
         taskTime: row.task_time
       });
     });
@@ -388,6 +453,7 @@ router.post("/lighterings/:id/confirm-empty", async (req, res, next) => {
            l.voyage_id,
            l.status,
            l.is_main_ship_empty,
+           l.unload_empty_confirmed,
            v.status AS voyage_status
          FROM lighterings l
          JOIN voyages v ON v.id = l.voyage_id AND v.is_void = 0
@@ -404,7 +470,19 @@ router.post("/lighterings/:id/confirm-empty", async (req, res, next) => {
       }
 
       const row = rows[0];
-      if (Number(row.is_main_ship_empty) === 1 || row.status === "MAIN_EMPTY_CONFIRMED") {
+      const unloadConfirmed = Number(row.unload_empty_confirmed != null ? row.unload_empty_confirmed : row.is_main_ship_empty);
+      if (unloadConfirmed === 1 || row.status === "MAIN_EMPTY_CONFIRMED") {
+        if (row.voyage_status !== "LOCKED") {
+          await conn.query(
+            `UPDATE voyages
+                SET status = 'LOCKED',
+                    locked_at = COALESCE(locked_at, NOW()),
+                    updated_at = NOW(),
+                    updated_by = ?
+              WHERE id = ?`,
+            [req.user.id, row.voyage_id]
+          );
+        }
         const v1 = await ensureSettlementV1(conn, row.voyage_id, req.user.id);
         return {
           alreadyConfirmed: true,
@@ -414,9 +492,16 @@ router.post("/lighterings/:id/confirm-empty", async (req, res, next) => {
         };
       }
 
+      if (row.status !== "IN_PROGRESS") {
+        const err = new Error("Only IN_PROGRESS lightering order can confirm main ship empty.");
+        err.status = 409;
+        throw err;
+      }
+
       await conn.query(
         `UPDATE lighterings
             SET is_main_ship_empty = 1,
+                unload_empty_confirmed = 1,
                 status = 'MAIN_EMPTY_CONFIRMED',
                 confirmed_by = ?,
                 confirmed_at = NOW(),
@@ -424,13 +509,13 @@ router.post("/lighterings/:id/confirm-empty", async (req, res, next) => {
                 updated_at = NOW(),
                 updated_by = ?
           WHERE id = ?`,
-        [req.user.id, String((req.body || {}).note || "现场确认卸空"), req.user.id, lighteringId]
+        [req.user.id, String((req.body || {}).note || "Main ship empty confirmed."), req.user.id, lighteringId]
       );
 
       await conn.query(
         `UPDATE voyages
             SET status = 'LOCKED',
-                locked_at = NOW(),
+                locked_at = COALESCE(locked_at, NOW()),
                 updated_at = NOW(),
                 updated_by = ?
           WHERE id = ?`,
@@ -444,8 +529,8 @@ router.post("/lighterings/:id/confirm-empty", async (req, res, next) => {
         action: "LIGHTERING_CONFIRM_EMPTY",
         entityType: "LIGHTERING",
         entityId: lighteringId,
-        beforeData: { status: row.status, isMainShipEmpty: row.is_main_ship_empty, voyageStatus: row.voyage_status },
-        afterData: { status: "MAIN_EMPTY_CONFIRMED", isMainShipEmpty: 1, voyageStatus: "LOCKED" }
+        beforeData: { status: row.status, unloadEmptyConfirmed: unloadConfirmed, voyageStatus: row.voyage_status },
+        afterData: { status: "MAIN_EMPTY_CONFIRMED", unloadEmptyConfirmed: 1, voyageStatus: "LOCKED" }
       });
 
       await writeAuditLog(conn, {
@@ -465,7 +550,9 @@ router.post("/lighterings/:id/confirm-empty", async (req, res, next) => {
     });
 
     res.json({
-      message: result.alreadyConfirmed ? "已确认卸空，航次已锁定。" : "卸空确认成功，航次已锁定并生成结算版本 v1。",
+      message: result.alreadyConfirmed
+        ? "Main ship empty already confirmed. Voyage remains locked."
+        : "Main ship empty confirmed. Voyage locked and settlement v1 generated.",
       ...result
     });
   } catch (error) {
@@ -488,15 +575,23 @@ router.get("/stockins/batches/:batchId", async (req, res, next) => {
          b.batch_no,
          b.status,
          b.available_qty,
+         b.locked_qty,
+         b.shipped_qty AS outbound_qty,
+         b.remaining_qty,
          b.stock_in_confirmed,
+         b.stock_in_confirmed_at,
+         b.stock_in_confirmed_by,
          b.voyage_id,
          v.voyage_no,
          v.status AS voyage_status,
+         v.procurement_id,
+         p.procurement_no,
          s.ship_name,
          si.confirmed_qty AS latest_confirmed_qty,
          si.stock_in_time AS latest_stock_in_time
        FROM inventory_batches b
        JOIN voyages v ON v.id = b.voyage_id AND v.is_void = 0
+       LEFT JOIN procurements p ON p.id = v.procurement_id AND p.is_void = 0
        LEFT JOIN ships s ON s.id = v.ship_id AND s.is_void = 0
        LEFT JOIN (
          SELECT x.batch_id, x.confirmed_qty, x.stock_in_time
@@ -526,12 +621,19 @@ router.get("/stockins/batches/:batchId", async (req, res, next) => {
         batchNo: row.batch_no,
         status: row.status,
         availableQty: Number(row.available_qty || 0),
+        lockedQty: Number(row.locked_qty || 0),
+        outboundQty: Number(row.outbound_qty || 0),
+        remainingQty: Number(row.remaining_qty || 0),
         sellable: Number(row.stock_in_confirmed || 0) === 1,
         sellableText: Number(row.stock_in_confirmed || 0) === 1 ? "可售" : "不可售",
         voyageId: row.voyage_id,
         voyageNo: row.voyage_no,
         voyageStatus: row.voyage_status,
+        procurementId: row.procurement_id || null,
+        procurementNo: row.procurement_no || "",
         shipName: row.ship_name || "-",
+        stockInConfirmedAt: row.stock_in_confirmed_at,
+        stockInConfirmedBy: row.stock_in_confirmed_by,
         latestConfirmedQty: row.latest_confirmed_qty == null ? null : Number(row.latest_confirmed_qty),
         latestStockInTime: row.latest_stock_in_time
       }
@@ -551,7 +653,8 @@ router.post("/stockins/confirm", async (req, res, next) => {
       stockInTime,
       evidenceUrls = [],
       remark = "",
-      reason = "锁定态吨数调整申请"
+      operatorName = "",
+      reason = "Locked voyage stock-in adjustment request"
     } = req.body || {};
 
     const parsedBatchId = Number(batchId);
@@ -566,10 +669,20 @@ router.post("/stockins/confirm", async (req, res, next) => {
            b.id,
            b.batch_no,
            b.voyage_id,
+           b.available_qty,
+           b.locked_qty,
+           b.shipped_qty,
+           b.remaining_qty,
+           b.stock_in_confirmed,
+           b.stock_in_confirmed_at,
+           b.stock_in_confirmed_by,
            v.voyage_no,
-           v.status AS voyage_status
+           v.status AS voyage_status,
+           v.procurement_id,
+           p.procurement_no
          FROM inventory_batches b
          JOIN voyages v ON v.id = b.voyage_id AND v.is_void = 0
+         LEFT JOIN procurements p ON p.id = v.procurement_id AND p.is_void = 0
          WHERE b.id = ?
            AND b.is_void = 0
          LIMIT 1
@@ -584,7 +697,7 @@ router.post("/stockins/confirm", async (req, res, next) => {
 
       const batch = batchRows[0];
       const [latestRows] = await conn.query(
-        `SELECT id, version_no, confirmed_qty, stock_in_time
+        `SELECT id, version_no, confirmed_qty, stock_in_time, before_qty, after_qty
            FROM stock_ins
           WHERE batch_id = ?
             AND is_void = 0
@@ -610,13 +723,27 @@ router.post("/stockins/confirm", async (req, res, next) => {
           reason,
           beforeSnapshot: {
             batchId: parsedBatchId,
+            batchNo: batch.batch_no,
+            voyageId: batch.voyage_id,
+            voyageNo: batch.voyage_no,
             confirmedQty: Number(latest.confirmed_qty),
-            stockInTime: latest.stock_in_time
+            beforeQty: Number(latest.before_qty == null ? batch.available_qty : latest.before_qty),
+            afterQty: Number(latest.after_qty == null ? latest.confirmed_qty : latest.after_qty),
+            stockInTime: latest.stock_in_time,
+            stockInConfirmed: Number(batch.stock_in_confirmed || 0) === 1
           },
           afterSnapshot: {
             batchId: parsedBatchId,
+            batchNo: batch.batch_no,
+            voyageId: batch.voyage_id,
+            voyageNo: batch.voyage_no,
             confirmedQty: parsedQty,
-            stockInTime: stockInTime || null
+            beforeQty: Number(batch.available_qty || 0),
+            afterQty: toFixedNumber(parsedQty, 3),
+            stockInTime: stockInTime || null,
+            evidenceUrls: normalizeAttachmentUrls(evidenceUrls),
+            remark: String(remark || ""),
+            operatorName: sanitizeText(operatorName, 64) || `User#${req.user.id}`
           }
         });
 
@@ -644,24 +771,47 @@ router.post("/stockins/confirm", async (req, res, next) => {
 
       const versionNo = hasConfirmed ? Number(latest.version_no) + 1 : 1;
       const stockInNo = generateNo("STI");
+      const resolvedStockInTime = toNullableDateTime(stockInTime) || new Date();
+      const resolvedEvidenceUrls = normalizeAttachmentUrls(evidenceUrls);
+      const resolvedOperatorName = sanitizeText(operatorName, 64) || `User#${req.user.id}`;
+      const beforeQty = toFixedNumber(batch.available_qty, 3);
+      const afterQty = toFixedNumber(parsedQty, 3);
 
       const [insertResult] = await conn.query(
         `INSERT INTO stock_ins
-          (stock_in_no, batch_id, version_no, confirmed_qty, stock_in_time, status, evidence_urls, remark,
+          (stock_in_no, batch_id, voyage_id, procurement_id, version_no, confirmed_qty, before_qty, after_qty,
+           stock_in_time, status, evidence_urls, voucher_attachments, remark, operator_id, operator_name,
            confirmed_by, approval_id, created_at, updated_at, created_by, updated_by, is_void)
-         VALUES (?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?, NULL, NOW(), NOW(), ?, ?, 0)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?, ?, ?, ?, NULL, NOW(), NOW(), ?, ?, 0)`,
         [
           stockInNo,
           parsedBatchId,
+          batch.voyage_id,
+          batch.procurement_id || null,
           versionNo,
           parsedQty,
-          stockInTime || new Date(),
-          JSON.stringify(evidenceUrls || []),
+          beforeQty,
+          afterQty,
+          resolvedStockInTime,
+          JSON.stringify(resolvedEvidenceUrls),
+          JSON.stringify(resolvedEvidenceUrls),
           String(remark || ""),
+          req.user.id || null,
+          resolvedOperatorName,
           req.user.id,
           req.user.id,
           req.user.id
         ]
+      );
+
+      await conn.query(
+        `UPDATE inventory_batches
+            SET stock_in_confirmed_at = ?,
+                stock_in_confirmed_by = ?,
+                updated_at = NOW(),
+                updated_by = ?
+          WHERE id = ?`,
+        [resolvedStockInTime, req.user.id, req.user.id, parsedBatchId]
       );
 
       await writeAuditLog(conn, {
@@ -669,15 +819,25 @@ router.post("/stockins/confirm", async (req, res, next) => {
         action: "STOCK_IN_CONFIRM",
         entityType: "STOCK_IN",
         entityId: insertResult.insertId,
+        beforeData: {
+          batchId: parsedBatchId,
+          voyageId: batch.voyage_id,
+          availableQty: beforeQty,
+          stockInConfirmed: Number(batch.stock_in_confirmed || 0) === 1,
+          stockInConfirmedAt: batch.stock_in_confirmed_at || null
+        },
         afterData: {
           batchId: parsedBatchId,
           voyageId: batch.voyage_id,
-          confirmedQty: parsedQty
+          procurementId: batch.procurement_id || null,
+          confirmedQty: parsedQty,
+          beforeQty,
+          afterQty
         }
       });
 
       const [batchAfterRows] = await conn.query(
-        `SELECT available_qty, stock_in_confirmed, status
+        `SELECT available_qty, locked_qty, shipped_qty, remaining_qty, stock_in_confirmed, stock_in_confirmed_at, stock_in_confirmed_by, status
            FROM inventory_batches
           WHERE id = ?`,
         [parsedBatchId]
@@ -690,14 +850,355 @@ router.post("/stockins/confirm", async (req, res, next) => {
         stockInNo,
         batchStatus: after.status || null,
         availableQty: Number(after.available_qty || 0),
-        stockInConfirmed: Number(after.stock_in_confirmed || 0)
+        lockedQty: Number(after.locked_qty || 0),
+        outboundQty: Number(after.shipped_qty || 0),
+        remainingQty: Number(after.remaining_qty || 0),
+        stockInConfirmed: Number(after.stock_in_confirmed || 0),
+        stockInConfirmedAt: after.stock_in_confirmed_at || null,
+        stockInConfirmedBy: after.stock_in_confirmed_by || null
       };
     });
 
     res.json({
-      message: result.requiresApproval
-        ? "航次已锁定，吨数调整已提交审批并生成结算修订版本。"
-        : "入库确认成功，available_qty 已更新。",
+      message: result.requiresApproval ? "航次已锁定，入库吨数调整已提交审批并生成结算修订版本。" : "入库确认成功，可用吨数已更新。",
+      ...result
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+router.post("/lighterings", async (req, res, next) => {
+  try {
+    ensureRole(req, ACCESS_ROLES);
+
+    const {
+      lighteringNo,
+      voyageId,
+      shipId,
+      transferType,
+      receiverType,
+      receiverShipName,
+      lighteringQty,
+      lighteringLocation,
+      lighteringPort,
+      lighteringTime,
+      operatorId,
+      operatorName,
+      status,
+      remark,
+      attachments = [],
+      items = []
+    } = req.body || {};
+
+    const parsedVoyageId = Number(voyageId || 0);
+    if (!parsedVoyageId) {
+      return res.status(400).json({ message: "voyageId is required." });
+    }
+
+    const payloadItems = normalizeLighteringItems(items);
+    const fallbackQty = Number(lighteringQty || 0);
+    const totalQty = payloadItems.length
+      ? toFixedNumber(payloadItems.reduce((sum, item) => sum + Number(item.transferQty || 0), 0), 3)
+      : (Number.isFinite(fallbackQty) && fallbackQty > 0 ? toFixedNumber(fallbackQty, 3) : 0);
+    if (!(totalQty > 0)) {
+      return res.status(400).json({ message: "lighteringQty must be positive." });
+    }
+
+    const result = await withTransaction(async (conn) => {
+      const [voyageRows] = await conn.query(
+        `SELECT id, voyage_no, ship_id, status
+           FROM voyages
+          WHERE id = ?
+            AND is_void = 0
+          LIMIT 1
+          FOR UPDATE`,
+        [parsedVoyageId]
+      );
+      if (!voyageRows.length) {
+        const err = new Error("Voyage not found.");
+        err.status = 404;
+        throw err;
+      }
+
+      const voyage = voyageRows[0];
+      if (voyage.status === "LOCKED" || voyage.status === "COMPLETED") {
+        const err = new Error("Locked/Completed voyage cannot create lightering order directly.");
+        err.status = 409;
+        throw err;
+      }
+
+      const resolvedShipId = Number(shipId || voyage.ship_id || 0) || null;
+      const resolvedStatus = normalizeLighteringStatus(status, "DRAFT");
+      if (resolvedStatus === "MAIN_EMPTY_CONFIRMED") {
+        const err = new Error("MAIN_EMPTY_CONFIRMED is generated by confirm-empty action only.");
+        err.status = 400;
+        throw err;
+      }
+      const resolvedLighteringNo = sanitizeText(lighteringNo, 64) || generateNo("LGT");
+      const resolvedTime = toNullableDateTime(lighteringTime) || new Date();
+      const resolvedAttachments = normalizeAttachmentUrls(attachments);
+      const resolvedOperatorId = Number(operatorId || 0) || null;
+      const resolvedOperatorName = sanitizeText(operatorName, 64) || null;
+      const resolvedReceiverShipName = sanitizeText(receiverShipName, 128) || null;
+      const resolvedRemark = sanitizeText(remark, 255) || null;
+
+      const [insertResult] = await conn.query(
+        `INSERT INTO lighterings
+          (lightering_no, voyage_id, ship_id, transfer_type, receiver_type, receiver_ship_name, lightering_location,
+           lightering_port, lightering_time, operator_id, operator_name, lightering_qty, started_at, ended_at,
+           is_main_ship_empty, unload_empty_confirmed, status, confirmed_by, confirmed_at, empty_confirm_note, remark,
+           attachments, created_at, updated_at, created_by, updated_by, is_void)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, 0, ?, NULL, NULL, NULL, ?, ?, NOW(), NOW(), ?, ?, 0)`,
+        [
+          resolvedLighteringNo,
+          parsedVoyageId,
+          resolvedShipId,
+          normalizeTransferType(transferType),
+          normalizeReceiverType(receiverType),
+          resolvedReceiverShipName,
+          sanitizeText(lighteringLocation, 128) || null,
+          sanitizeText(lighteringPort, 128) || null,
+          resolvedTime,
+          resolvedOperatorId,
+          resolvedOperatorName,
+          totalQty,
+          resolvedTime,
+          resolvedStatus,
+          resolvedRemark,
+          JSON.stringify(resolvedAttachments),
+          req.user.id || null,
+          req.user.id || null
+        ]
+      );
+
+      const lighteringId = Number(insertResult.insertId || 0);
+      for (const item of payloadItems) {
+        await conn.query(
+          `INSERT INTO lightering_items
+            (lightering_id, line_no, cargo_name, transfer_qty, receiver_name, receiver_ship_name, status, remark,
+             created_at, updated_at, created_by, updated_by, is_void)
+           VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, NOW(), NOW(), ?, ?, 0)`,
+          [
+            lighteringId,
+            item.lineNo,
+            item.cargoName,
+            item.transferQty,
+            item.receiverName,
+            item.receiverShipName,
+            item.remark,
+            req.user.id || null,
+            req.user.id || null
+          ]
+        );
+      }
+
+      await writeAuditLog(conn, {
+        actorUserId: req.user.id,
+        action: "LIGHTERING_CREATE",
+        entityType: "LIGHTERING",
+        entityId: lighteringId,
+        afterData: {
+          lighteringNo: resolvedLighteringNo,
+          voyageId: parsedVoyageId,
+          voyageNo: voyage.voyage_no,
+          shipId: resolvedShipId,
+          lighteringQty: totalQty,
+          status: resolvedStatus,
+          itemCount: payloadItems.length
+        }
+      });
+
+      return {
+        lighteringId,
+        lighteringNo: resolvedLighteringNo
+      };
+    });
+
+    res.json({
+      message: "Lightering order created.",
+      ...result
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put("/lighterings/:id", async (req, res, next) => {
+  try {
+    ensureRole(req, ACCESS_ROLES);
+    const lighteringId = Number(req.params.id || 0);
+    if (!lighteringId) {
+      return res.status(400).json({ message: "Invalid lightering id." });
+    }
+
+    const {
+      transferType,
+      receiverType,
+      receiverShipName,
+      lighteringQty,
+      lighteringLocation,
+      lighteringPort,
+      lighteringTime,
+      operatorId,
+      operatorName,
+      status,
+      remark,
+      attachments = [],
+      items
+    } = req.body || {};
+
+    const result = await withTransaction(async (conn) => {
+      const [rows] = await conn.query(
+        `SELECT
+           l.*,
+           v.status AS voyage_status
+         FROM lighterings l
+         JOIN voyages v ON v.id = l.voyage_id AND v.is_void = 0
+         WHERE l.id = ?
+           AND l.is_void = 0
+         LIMIT 1
+         FOR UPDATE`,
+        [lighteringId]
+      );
+      if (!rows.length) {
+        const err = new Error("Lightering order not found.");
+        err.status = 404;
+        throw err;
+      }
+
+      const row = rows[0];
+      if (row.voyage_status === "LOCKED" || row.status === "MAIN_EMPTY_CONFIRMED") {
+        const err = new Error("Locked lightering data cannot be directly modified.");
+        err.status = 409;
+        throw err;
+      }
+
+      const payloadItems = items == null ? null : normalizeLighteringItems(items);
+      const qtyFromItems = payloadItems && payloadItems.length
+        ? toFixedNumber(payloadItems.reduce((sum, item) => sum + Number(item.transferQty || 0), 0), 3)
+        : null;
+      const parsedQty = Number(lighteringQty || 0);
+      const resolvedQty = qtyFromItems != null
+        ? qtyFromItems
+        : (Number.isFinite(parsedQty) && parsedQty > 0 ? toFixedNumber(parsedQty, 3) : Number(row.lightering_qty));
+      if (!(resolvedQty > 0)) {
+        const err = new Error("lighteringQty must be positive.");
+        err.status = 400;
+        throw err;
+      }
+
+      const resolvedStatus = normalizeLighteringStatus(status, String(row.status || "DRAFT"));
+      if (resolvedStatus === "MAIN_EMPTY_CONFIRMED") {
+        const err = new Error("MAIN_EMPTY_CONFIRMED is generated by confirm-empty action only.");
+        err.status = 400;
+        throw err;
+      }
+      const resolvedRemark = sanitizeText(remark, 255) || null;
+      const resolvedAttachments = normalizeAttachmentUrls(attachments);
+
+      await conn.query(
+        `UPDATE lighterings
+            SET transfer_type = ?,
+                receiver_type = ?,
+                receiver_ship_name = ?,
+                lightering_location = ?,
+                lightering_port = ?,
+                lightering_time = ?,
+                operator_id = ?,
+                operator_name = ?,
+                lightering_qty = ?,
+                status = ?,
+                remark = ?,
+                attachments = ?,
+                updated_at = NOW(),
+                updated_by = ?
+          WHERE id = ?`,
+        [
+          normalizeTransferType(transferType || row.transfer_type),
+          normalizeReceiverType(receiverType || row.receiver_type),
+          sanitizeText(receiverShipName, 128) || row.receiver_ship_name || null,
+          sanitizeText(lighteringLocation, 128) || row.lightering_location || null,
+          sanitizeText(lighteringPort, 128) || row.lightering_port || null,
+          toNullableDateTime(lighteringTime) || row.lightering_time || row.started_at || new Date(),
+          Number(operatorId || 0) || row.operator_id || null,
+          sanitizeText(operatorName, 64) || row.operator_name || null,
+          resolvedQty,
+          resolvedStatus,
+          resolvedRemark != null ? resolvedRemark : (row.remark || null),
+          JSON.stringify(resolvedAttachments.length ? resolvedAttachments : parseJsonArray(row.attachments)),
+          req.user.id || null,
+          lighteringId
+        ]
+      );
+
+      if (payloadItems) {
+        await conn.query(
+          `UPDATE lightering_items
+              SET status = 'VOID',
+                  is_void = 1,
+                  void_reason = 'Replaced by lightering edit',
+                  void_at = NOW(),
+                  updated_at = NOW(),
+                  updated_by = ?
+            WHERE lightering_id = ?
+              AND is_void = 0`,
+          [req.user.id || null, lighteringId]
+        );
+
+        const [maxLineRows] = await conn.query(
+          `SELECT COALESCE(MAX(line_no), 0) AS max_line_no
+             FROM lightering_items
+            WHERE lightering_id = ?
+            FOR UPDATE`,
+          [lighteringId]
+        );
+        let nextLineNo = Number((maxLineRows[0] && maxLineRows[0].max_line_no) || 0);
+
+        for (const item of payloadItems) {
+          nextLineNo += 1;
+          await conn.query(
+            `INSERT INTO lightering_items
+              (lightering_id, line_no, cargo_name, transfer_qty, receiver_name, receiver_ship_name, status, remark,
+               created_at, updated_at, created_by, updated_by, is_void)
+             VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE', ?, NOW(), NOW(), ?, ?, 0)`,
+            [
+              lighteringId,
+              nextLineNo,
+              item.cargoName,
+              item.transferQty,
+              item.receiverName,
+              item.receiverShipName,
+              item.remark,
+              req.user.id || null,
+              req.user.id || null
+            ]
+          );
+        }
+      }
+
+      await writeAuditLog(conn, {
+        actorUserId: req.user.id,
+        action: "LIGHTERING_UPDATE",
+        entityType: "LIGHTERING",
+        entityId: lighteringId,
+        beforeData: {
+          status: row.status,
+          lighteringQty: Number(row.lightering_qty || 0),
+          transferType: row.transfer_type
+        },
+        afterData: {
+          status: resolvedStatus,
+          lighteringQty: resolvedQty,
+          transferType: normalizeTransferType(transferType || row.transfer_type),
+          itemCount: payloadItems ? payloadItems.length : null
+        }
+      });
+
+      return { lighteringId };
+    });
+
+    res.json({
+      message: "Lightering order updated.",
       ...result
     });
   } catch (error) {
@@ -728,8 +1229,17 @@ router.get("/lighterings", async (req, res, next) => {
          l.id,
          l.lightering_no,
          l.voyage_id,
+         COALESCE(l.ship_id, v.ship_id) AS ship_id,
          l.status,
          l.is_main_ship_empty,
+         l.unload_empty_confirmed,
+         l.lightering_location,
+         l.lightering_port,
+         l.lightering_time,
+         l.operator_id,
+         l.operator_name,
+         l.remark,
+         l.attachments,
          l.started_at,
          l.confirmed_at,
          l.created_at,
@@ -752,11 +1262,24 @@ router.get("/lighterings", async (req, res, next) => {
         lighteringNo: row.lightering_no,
         voyageId: row.voyage_id,
         voyageNo: row.voyage_no,
+        shipId: row.ship_id,
         voyageStatus: row.voyage_status,
         shipName: row.ship_name || "-",
         status: row.status,
-        isMainShipEmpty: Number(row.is_main_ship_empty || 0) === 1,
-        canConfirmEmpty: row.status === "IN_PROGRESS" && Number(row.is_main_ship_empty || 0) === 0,
+        isMainShipEmpty: Number((row.unload_empty_confirmed != null ? row.unload_empty_confirmed : row.is_main_ship_empty) || 0) === 1,
+        unloadEmptyConfirmed: Number((row.unload_empty_confirmed != null ? row.unload_empty_confirmed : row.is_main_ship_empty) || 0) === 1,
+        canConfirmEmpty: row.status === "IN_PROGRESS"
+          && Number((row.unload_empty_confirmed != null ? row.unload_empty_confirmed : row.is_main_ship_empty) || 0) === 0,
+        canEdit: row.voyage_status === "IN_PROGRESS"
+          && ["DRAFT", "IN_PROGRESS"].includes(row.status)
+          && Number((row.unload_empty_confirmed != null ? row.unload_empty_confirmed : row.is_main_ship_empty) || 0) === 0,
+        lighteringLocation: row.lightering_location || "",
+        lighteringPort: row.lightering_port || "",
+        lighteringTime: row.lightering_time || row.started_at || null,
+        operatorId: row.operator_id || null,
+        operatorName: row.operator_name || "",
+        remark: row.remark || "",
+        attachments: parseJsonArray(row.attachments),
         startedAt: row.started_at,
         confirmedAt: row.confirmed_at,
         createdAt: row.created_at,
@@ -782,9 +1305,23 @@ router.get("/lighterings/:id", async (req, res, next) => {
          l.id,
          l.lightering_no,
          l.voyage_id,
+         COALESCE(l.ship_id, v.ship_id) AS ship_id,
          l.status,
          l.is_main_ship_empty,
+         l.unload_empty_confirmed,
+         l.lightering_location,
+         l.lightering_port,
+         l.lightering_time,
+         l.operator_id,
+         l.operator_name,
+         l.remark,
+         l.attachments,
+         l.transfer_type,
+         l.receiver_type,
+         l.receiver_ship_name,
+         l.lightering_qty,
          l.started_at,
+         l.ended_at,
          l.confirmed_by,
          l.confirmed_at,
          l.empty_confirm_note,
@@ -795,7 +1332,7 @@ router.get("/lighterings/:id", async (req, res, next) => {
          s.ship_name
        FROM lighterings l
        JOIN voyages v ON v.id = l.voyage_id AND v.is_void = 0
-       LEFT JOIN ships s ON s.id = v.ship_id AND s.is_void = 0
+       LEFT JOIN ships s ON s.id = COALESCE(l.ship_id, v.ship_id) AND s.is_void = 0
        WHERE l.id = ?
          AND l.is_void = 0
        LIMIT 1`,
@@ -835,21 +1372,40 @@ router.get("/lighterings/:id", async (req, res, next) => {
         lighteringNo: row.lightering_no,
         voyageId: row.voyage_id,
         voyageNo: row.voyage_no,
+        shipId: row.ship_id,
         voyageStatus: row.voyage_status,
         shipName: row.ship_name || "-",
         status: row.status,
-        isMainShipEmpty: Number(row.is_main_ship_empty || 0) === 1,
-        canConfirmEmpty: row.status === "IN_PROGRESS" && Number(row.is_main_ship_empty || 0) === 0,
+        isMainShipEmpty: Number((row.unload_empty_confirmed != null ? row.unload_empty_confirmed : row.is_main_ship_empty) || 0) === 1,
+        unloadEmptyConfirmed: Number((row.unload_empty_confirmed != null ? row.unload_empty_confirmed : row.is_main_ship_empty) || 0) === 1,
+        canConfirmEmpty: row.status === "IN_PROGRESS"
+          && Number((row.unload_empty_confirmed != null ? row.unload_empty_confirmed : row.is_main_ship_empty) || 0) === 0,
+        canEdit: row.voyage_status === "IN_PROGRESS"
+          && ["DRAFT", "IN_PROGRESS"].includes(row.status)
+          && Number((row.unload_empty_confirmed != null ? row.unload_empty_confirmed : row.is_main_ship_empty) || 0) === 0,
+        transferType: row.transfer_type || "",
+        receiverType: row.receiver_type || "",
+        receiverShipName: row.receiver_ship_name || "",
+        lighteringQty: Number(row.lightering_qty || 0),
+        lighteringLocation: row.lightering_location || "",
+        lighteringPort: row.lightering_port || "",
+        lighteringTime: row.lightering_time || row.started_at || null,
+        operatorId: row.operator_id || null,
+        operatorName: row.operator_name || "",
         startedAt: row.started_at,
+        endedAt: row.ended_at,
         confirmedBy: row.confirmed_by,
         confirmedAt: row.confirmed_at,
         emptyConfirmNote: row.empty_confirm_note || "",
+        remark: row.remark || "",
+        attachments: parseJsonArray(row.attachments),
         createdAt: row.created_at,
         updatedAt: row.updated_at
       },
-      items: itemRows[0].map((item) => ({
+      items: itemRows[0].map((item, index) => ({
         id: item.id,
-        lineNo: item.line_no,
+        lineNo: index + 1,
+        sourceLineNo: item.line_no,
         cargoName: item.cargo_name,
         transferQty: Number(item.transfer_qty || 0),
         receiverName: item.receiver_name || "",
@@ -895,23 +1451,38 @@ router.get("/stockins", async (req, res, next) => {
          si.id,
          si.stock_in_no,
          si.batch_id,
+         si.voyage_id,
+         si.procurement_id,
          si.version_no,
          si.confirmed_qty,
+         si.before_qty,
+         si.after_qty,
          si.stock_in_time,
          si.status,
+         si.voucher_attachments,
+         si.evidence_urls,
+         si.operator_id,
+         si.operator_name,
          si.approval_id,
          si.created_at,
          si.updated_at,
          b.batch_no,
          b.available_qty,
+         b.locked_qty,
+         b.shipped_qty AS outbound_qty,
+         b.remaining_qty,
          b.stock_in_confirmed,
-         v.id AS voyage_id,
+         b.stock_in_confirmed_at,
+         b.stock_in_confirmed_by,
+         COALESCE(si.voyage_id, v.id) AS voyage_id,
          v.voyage_no,
          v.status AS voyage_status,
+         p.procurement_no,
          s.ship_name
        FROM stock_ins si
        JOIN inventory_batches b ON b.id = si.batch_id AND b.is_void = 0
        JOIN voyages v ON v.id = b.voyage_id AND v.is_void = 0
+       LEFT JOIN procurements p ON p.id = COALESCE(si.procurement_id, v.procurement_id) AND p.is_void = 0
        LEFT JOIN ships s ON s.id = v.ship_id AND s.is_void = 0
        WHERE ${where.join(" AND ")}
        ORDER BY si.created_at DESC
@@ -928,14 +1499,26 @@ router.get("/stockins", async (req, res, next) => {
         voyageId: row.voyage_id,
         voyageNo: row.voyage_no,
         voyageStatus: row.voyage_status,
+        procurementId: row.procurement_id || null,
+        procurementNo: row.procurement_no || "",
         shipName: row.ship_name || "-",
         versionNo: Number(row.version_no || 0),
         confirmedQty: Number(row.confirmed_qty || 0),
+        beforeQty: Number(row.before_qty || 0),
+        afterQty: Number(row.after_qty || 0),
         stockInTime: row.stock_in_time,
         status: row.status,
+        voucherAttachments: parseJsonArray(row.voucher_attachments || row.evidence_urls),
+        operatorId: row.operator_id || null,
+        operatorName: row.operator_name || "",
         approvalId: row.approval_id,
         availableQty: Number(row.available_qty || 0),
+        lockedQty: Number(row.locked_qty || 0),
+        outboundQty: Number(row.outbound_qty || 0),
+        remainingQty: Number(row.remaining_qty || 0),
         stockInConfirmed: Number(row.stock_in_confirmed || 0) === 1,
+        stockInConfirmedAt: row.stock_in_confirmed_at,
+        stockInConfirmedBy: row.stock_in_confirmed_by,
         createdAt: row.created_at,
         updatedAt: row.updated_at
       }))
@@ -960,26 +1543,40 @@ router.get("/stockins/:id", async (req, res, next) => {
            si.id,
            si.stock_in_no,
            si.batch_id,
+           si.voyage_id,
+           si.procurement_id,
            si.version_no,
            si.confirmed_qty,
+           si.before_qty,
+           si.after_qty,
            si.stock_in_time,
            si.status,
            si.evidence_urls,
+           si.voucher_attachments,
            si.remark,
+           si.operator_id,
+           si.operator_name,
            si.confirmed_by,
            si.approval_id,
            si.created_at,
            si.updated_at,
            b.batch_no,
            b.available_qty,
+           b.locked_qty,
+           b.shipped_qty AS outbound_qty,
+           b.remaining_qty,
            b.stock_in_confirmed,
-           v.id AS voyage_id,
+           b.stock_in_confirmed_at,
+           b.stock_in_confirmed_by,
+           COALESCE(si.voyage_id, v.id) AS voyage_id,
            v.voyage_no,
            v.status AS voyage_status,
+           p.procurement_no,
            s.ship_name
          FROM stock_ins si
          JOIN inventory_batches b ON b.id = si.batch_id AND b.is_void = 0
          JOIN voyages v ON v.id = b.voyage_id AND v.is_void = 0
+         LEFT JOIN procurements p ON p.id = COALESCE(si.procurement_id, v.procurement_id) AND p.is_void = 0
          LEFT JOIN ships s ON s.id = v.ship_id AND s.is_void = 0
          WHERE si.id = ?
            AND si.is_void = 0
@@ -1013,17 +1610,29 @@ router.get("/stockins/:id", async (req, res, next) => {
         voyageId: row.voyage_id,
         voyageNo: row.voyage_no,
         voyageStatus: row.voyage_status,
+        procurementId: row.procurement_id || null,
+        procurementNo: row.procurement_no || "",
         shipName: row.ship_name || "-",
         versionNo: Number(row.version_no || 0),
         confirmedQty: Number(row.confirmed_qty || 0),
+        beforeQty: Number(row.before_qty || 0),
+        afterQty: Number(row.after_qty || 0),
         stockInTime: row.stock_in_time,
         status: row.status,
         evidenceUrls: parseJsonArray(row.evidence_urls),
+        voucherAttachments: parseJsonArray(row.voucher_attachments || row.evidence_urls),
         remark: row.remark || "",
+        operatorId: row.operator_id || null,
+        operatorName: row.operator_name || "",
         confirmedBy: row.confirmed_by,
         approvalId: row.approval_id,
         availableQty: Number(row.available_qty || 0),
+        lockedQty: Number(row.locked_qty || 0),
+        outboundQty: Number(row.outbound_qty || 0),
+        remainingQty: Number(row.remaining_qty || 0),
         stockInConfirmed: Number(row.stock_in_confirmed || 0) === 1,
+        stockInConfirmedAt: row.stock_in_confirmed_at,
+        stockInConfirmedBy: row.stock_in_confirmed_by,
         createdAt: row.created_at,
         updatedAt: row.updated_at
       },
@@ -1211,9 +1820,7 @@ router.post("/expenses", async (req, res, next) => {
     });
 
     res.json({
-      message: result.requiresApproval
-        ? "航次已锁定，费用已提交审批并生成结算修订版本。"
-        : "费用录入成功。",
+      message: result.requiresApproval ? "航次已锁定，入库吨数调整已提交审批并生成结算修订版本。" : "入库确认成功，可用吨数已更新。",
       ...result
     });
   } catch (error) {
@@ -1391,3 +1998,5 @@ router.get("/expenses/:id", async (req, res, next) => {
 });
 
 module.exports = router;
+
+

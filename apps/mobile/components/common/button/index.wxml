@@ -13,9 +13,9 @@
   <view class="sl-btn__content">
     <text
       wx:if="{{icon}}"
-      class="sl-btn__icon {{iconPosition === 'right' ? 'sl-btn__icon--right' : 'sl-btn__icon--left'}}"
+      class="sl-btn__icon {{iconClass}} {{iconText ? 'sl-btn__icon--text' : ''}} {{iconPosition === 'right' ? 'sl-btn__icon--right' : 'sl-btn__icon--left'}}"
     >
-      {{icon}}
+      {{iconText}}
     </text>
     <text wx:if="{{text}}" class="sl-btn__text">{{text}}</text>
     <slot></slot>

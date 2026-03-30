@@ -12,6 +12,7 @@
     "pages/ship/form/index",
     "pages/onsite/tasks/index",
     "pages/onsite/lightering-list/index",
+    "pages/onsite/lightering-form/index",
     "pages/onsite/lightering-detail/index",
     "pages/onsite/stockin-list/index",
     "pages/onsite/stockin-detail/index",
@@ -37,7 +38,7 @@
     "pages/governance/audit/index",
     "pages/governance/report/index",
     "pages/voyage/voyage",
-    "pages/alerts/alerts",
+    "pages/alerts/index",
     "pages/ui-kit/index"
   ],
   "usingComponents": {
@@ -60,6 +61,15 @@
     "backgroundColor": "#F4F7FB",
     "backgroundTextStyle": "light"
   },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于船舶定位与地图查看"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation",
+    "chooseLocation"
+  ],
   "tabBar": {
     "color": "#666666",
     "selectedColor": "#0B3B66",
@@ -68,15 +78,21 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "工作台"
+        "text": "工作台",
+        "iconPath": "assets/tabbar/workbench-normal.png",
+        "selectedIconPath": "assets/tabbar/workbench-selected.png"
       },
       {
         "pagePath": "pages/ship/list/index",
-        "text": "船只"
+        "text": "船只",
+        "iconPath": "assets/tabbar/ship-normal.png",
+        "selectedIconPath": "assets/tabbar/ship-selected.png"
       },
       {
         "pagePath": "pages/onsite/tasks/index",
-        "text": "现场"
+        "text": "现场",
+        "iconPath": "assets/tabbar/onsite-normal.png",
+        "selectedIconPath": "assets/tabbar/onsite-selected.png"
       }
     ]
   },

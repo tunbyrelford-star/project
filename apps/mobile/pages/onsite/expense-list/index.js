@@ -1,19 +1,33 @@
 const { listExpenses } = require("../../../services/onsite");
 
 const STATUS_FILTERS = [
-  { key: "ALL", label: "All" },
-  { key: "DRAFT", label: "Draft" },
-  { key: "CONFIRMED", label: "Confirmed" }
+  { key: "ALL", label: "全部" },
+  { key: "DRAFT", label: "草稿" },
+  { key: "CONFIRMED", label: "已确认" }
 ];
 
 const TYPE_OPTIONS = [
-  { label: "All Types", value: "" },
-  { label: "FREIGHT", value: "FREIGHT" },
-  { label: "LIGHTERING", value: "LIGHTERING" },
-  { label: "CRANE", value: "CRANE" },
-  { label: "PORT_MISC", value: "PORT_MISC" },
-  { label: "OTHER", value: "OTHER" }
+  { label: "全部类型", value: "" },
+  { label: "运费", value: "FREIGHT" },
+  { label: "过驳费", value: "LIGHTERING" },
+  { label: "吊机费", value: "CRANE" },
+  { label: "港杂费", value: "PORT_MISC" },
+  { label: "其他", value: "OTHER" }
 ];
+
+const STATUS_LABEL_MAP = {
+  DRAFT: "草稿",
+  CONFIRMED: "已确认",
+  VOID: "已作废"
+};
+
+const EXPENSE_TYPE_LABEL_MAP = {
+  FREIGHT: "运费",
+  LIGHTERING: "过驳费",
+  CRANE: "吊机费",
+  PORT_MISC: "港杂费",
+  OTHER: "其他"
+};
 
 function statusTone(status) {
   const code = String(status || "").toUpperCase();
@@ -21,6 +35,16 @@ function statusTone(status) {
   if (code === "DRAFT") return "warning";
   if (code === "VOID") return "danger";
   return "info";
+}
+
+function mapStatusLabel(status) {
+  const code = String(status || "").toUpperCase();
+  return STATUS_LABEL_MAP[code] || (code ? "处理中" : "-");
+}
+
+function mapExpenseTypeLabel(expenseType) {
+  const code = String(expenseType || "").toUpperCase();
+  return EXPENSE_TYPE_LABEL_MAP[code] || (code ? "其他" : "-");
 }
 
 Page({
@@ -85,7 +109,9 @@ Page({
       .then((res) => {
         const list = (res.items || []).map((item) => ({
           ...item,
-          statusTone: statusTone(item.status)
+          statusTone: statusTone(item.status),
+          statusText: mapStatusLabel(item.status),
+          expenseTypeText: mapExpenseTypeLabel(item.expenseType)
         }));
         this.setData({
           loading: false,
@@ -98,4 +124,3 @@ Page({
       });
   }
 });
-

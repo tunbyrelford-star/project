@@ -37,10 +37,15 @@ Component({
   data: {
     resolvedType: "primary",
     resolvedSize: "default",
-    iconOnly: false
+    iconOnly: false,
+    iconClass: "",
+    iconText: ""
   },
   lifetimes: {
     attached() {
+      this.resolveStyleState();
+    },
+    ready() {
       this.resolveStyleState();
     }
   },
@@ -63,13 +68,22 @@ Component({
       const resolvedType = TYPE_MAP[this.data.type] || TYPE_MAP.primary;
       const resolvedSize = SIZE_MAP[this.data.size] || SIZE_MAP.default;
       const hasText = Boolean(String(this.data.text || "").trim());
-      const hasIcon = Boolean(String(this.data.icon || "").trim());
+      const normalizedIcon = String(this.data.icon || "").trim();
+      const hasIcon = Boolean(normalizedIcon);
+      const iconClassMatch = normalizedIcon.match(/icon-[a-z0-9-]+/i);
+      const iconClass = iconClassMatch ? iconClassMatch[0] : "";
+      const containsIconToken = normalizedIcon.toLowerCase().includes("icon-");
+      const iconText = iconClass
+        ? normalizedIcon.replace(iconClass, "").trim()
+        : (containsIconToken ? "" : normalizedIcon);
       const iconOnly = !hasText && hasIcon;
 
       this.setData({
         resolvedType,
         resolvedSize,
-        iconOnly
+        iconOnly,
+        iconClass,
+        iconText
       });
     },
     onTap(event) {

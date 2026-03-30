@@ -25,6 +25,8 @@
 .actions {
   display: flex;
   gap: 12rpx;
+  flex-wrap: wrap;
+  align-items: center;
   margin-top: 12rpx;
 }
 

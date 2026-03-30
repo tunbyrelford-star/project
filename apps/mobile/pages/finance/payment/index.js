@@ -15,6 +15,16 @@ function toFixedNum(value, digits = 2) {
   return Number(toNum(value, 0).toFixed(digits));
 }
 
+function buildRequestNo(orderId) {
+  const rand = Math.floor(Math.random() * 100000).toString().padStart(5, "0");
+  return `PAY-${orderId}-${Date.now()}-${rand}`;
+}
+
+function methodLabel(code) {
+  const hit = PAYMENT_METHOD_OPTIONS.find((x) => x.value === code);
+  return hit ? hit.label : (code || "-");
+}
+
 Page({
   data: {
     orderId: 0,
@@ -32,7 +42,8 @@ Page({
       remark: "",
       reversalReason: ""
     },
-    methodOptions: PAYMENT_METHOD_OPTIONS
+    methodOptions: PAYMENT_METHOD_OPTIONS,
+    currentRequestNo: ""
   },
 
   onLoad(options) {
@@ -41,7 +52,10 @@ Page({
       wx.showToast({ title: "订单参数错误", icon: "none" });
       return;
     }
-    this.setData({ orderId });
+    this.setData({
+      orderId,
+      currentRequestNo: buildRequestNo(orderId)
+    });
     this.loadDetail();
   },
 
@@ -78,20 +92,25 @@ Page({
     }
 
     wx.showModal({
-      title: "不可撤销确认",
-      content: "确认收款后不可撤销。如误操作只能通过冲正处理，是否继续？",
+      title: "确认收款（不可撤销）",
+      content: "确认后该笔收款不可直接撤销。若误操作，只能通过“冲正记录”处理。是否继续？",
       confirmText: "继续确认",
       success: (modalRes) => {
         if (!modalRes.confirm) return;
         this.setData({ submitting: true });
         confirmOrderPayment(order.id, {
+          requestNo: this.data.currentRequestNo,
           paymentAmount: amount,
           paymentMethod: PAYMENT_METHOD_OPTIONS[this.data.form.methodIndex].value,
           remark: this.data.form.remark,
           paidAt: new Date().toISOString()
         })
-          .then(() => {
-            wx.showToast({ title: "收款已确认", icon: "success" });
+          .then((res) => {
+            const tip = res && res.idempotent ? "重复提交已拦截" : "收款确认成功";
+            wx.showToast({ title: tip, icon: "success" });
+            this.setData({
+              currentRequestNo: buildRequestNo(order.id)
+            });
             this.loadDetail();
           })
           .catch((err) => {
@@ -103,30 +122,32 @@ Page({
       }
     });
   },
+
   onReversePayment(event) {
     const paymentId = Number(event.currentTarget.dataset.id);
     const reason = String(this.data.form.reversalReason || "").trim();
     if (!paymentId) return;
     if (this.data.reversingPaymentId) return;
     if (!reason) {
-      wx.showToast({ title: "Please input reversal reason", icon: "none" });
+      wx.showToast({ title: "请先填写冲正原因", icon: "none" });
       return;
     }
 
     wx.showModal({
-      title: "Confirm reverse",
-      content: "A reversal record will be created and the original payment will remain immutable. Continue?",
-      confirmText: "Confirm",
+      title: "确认冲正",
+      content: "系统将新增一条冲正记录，不会修改原收款记录。是否继续？",
+      confirmText: "确认冲正",
       success: (modalRes) => {
         if (!modalRes.confirm) return;
         this.setData({ reversingPaymentId: paymentId });
         reversePayment(paymentId, { reason })
           .then(() => {
-            wx.showToast({ title: "Reversal completed", icon: "success" });
+            wx.showToast({ title: "冲正完成", icon: "success" });
+            this.setData({ "form.reversalReason": "" });
             this.loadDetail();
           })
           .catch((err) => {
-            wx.showToast({ title: (err && err.message) || "Reversal failed", icon: "none" });
+            wx.showToast({ title: (err && err.message) || "冲正失败", icon: "none" });
           })
           .finally(() => {
             this.setData({ reversingPaymentId: 0 });
@@ -145,7 +166,10 @@ Page({
           order: res.order || {},
           receipt,
           actions: res.actions || {},
-          payments: res.payments || [],
+          payments: (res.payments || []).map((item) => ({
+            ...item,
+            paymentMethodText: methodLabel(item.paymentMethod)
+          })),
           "form.paymentAmount": receipt.outstandingAmount != null ? String(receipt.outstandingAmount) : this.data.form.paymentAmount
         });
       })

@@ -38,6 +38,14 @@ function checkSandingTimeout(procurementId) {
   });
 }
 
+function handleSandingTimeout(procurementId, payload) {
+  return request({
+    url: `/procurements/${procurementId}/handle-timeout`,
+    method: "POST",
+    data: payload || {}
+  });
+}
+
 function closeAlert(alertId, handleNote) {
   return request({
     url: `/alerts/${alertId}/close`,
@@ -73,6 +81,7 @@ module.exports = {
   createProcurement,
   startSanding,
   checkSandingTimeout,
+  handleSandingTimeout,
   closeAlert,
   listShipOptions,
   listBuyerAccountOptions,

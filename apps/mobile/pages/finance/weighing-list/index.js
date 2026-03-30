@@ -1,10 +1,10 @@
 const { listWeighingSlips } = require("../../../services/finance");
 
 const STATUS_FILTERS = [
-  { key: "ALL", label: "All" },
-  { key: "PENDING_CONFIRM", label: "Pending Confirm" },
-  { key: "CONFIRMED", label: "Confirmed" },
-  { key: "VOID", label: "Void" }
+  { key: "ALL", label: "全部" },
+  { key: "PENDING_CONFIRM", label: "待确认" },
+  { key: "CONFIRMED", label: "已确认" },
+  { key: "VOID", label: "作废" }
 ];
 
 function tone(status) {
@@ -13,6 +13,30 @@ function tone(status) {
   if (code === "PENDING_CONFIRM") return "warning";
   if (code === "VOID") return "danger";
   return "info";
+}
+
+function statusText(status) {
+  const code = String(status || "").toUpperCase();
+  if (code === "PENDING_CONFIRM") return "待确认";
+  if (code === "CONFIRMED") return "已确认";
+  if (code === "VOID") return "作废";
+  return code || "-";
+}
+
+function mapOrderStatus(status) {
+  const code = String(status || "").toUpperCase();
+  if (code === "PENDING_FINAL_QTY_CONFIRM") return "待最终吨数确认";
+  if (code === "LOCKED") return "已锁定";
+  if (code === "COMPLETED") return "已完成";
+  if (code === "VOID") return "已作废";
+  return code || "-";
+}
+
+function mapArStatus(status) {
+  const code = String(status || "").toUpperCase();
+  if (code === "ESTIMATED_AR") return "预估应收";
+  if (code === "FINAL_AR") return "最终应收";
+  return code || "-";
 }
 
 Page({
@@ -67,6 +91,9 @@ Page({
       .then((res) => {
         const list = (res.items || []).map((item) => ({
           ...item,
+          statusText: statusText(item.status),
+          orderStatusText: mapOrderStatus(item.orderStatus),
+          arStatusText: mapArStatus(item.arStatus),
           statusTone: tone(item.status),
           diffTone: Number(item.deltaQty || 0) === 0 ? "success" : "warning"
         }));
@@ -77,4 +104,3 @@ Page({
       });
   }
 });
-

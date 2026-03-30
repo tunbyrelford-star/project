@@ -1,10 +1,10 @@
 <sl-page-shell
-  title="Weighing Slip Orders"
-  subtitle="Weighing slip list for finance closure workflow"
+  title="磅单"
+  subtitle="财务结算流程中的磅单列表"
   loading="{{loading}}"
   showError="{{showError}}"
   showEmpty="{{!loading && !showError && !list.length}}"
-  emptyText="No weighing slips"
+  emptyText="暂无磅单"
   bind:retry="onRetry"
 >
   <sl-top-filter-bar
@@ -12,7 +12,7 @@
     filters="{{filters}}"
     activeKey="{{activeStatus}}"
     showSearch="{{true}}"
-    searchPlaceholder="Slip no / Sales order / Customer"
+    searchPlaceholder="磅单号 / 销售单号 / 客户"
     bind:change="onFilterChange"
     bind:search="onSearch"
   />
@@ -22,29 +22,29 @@
     wx:key="id"
     title="{{item.slipNo}}"
     subtitle="{{item.salesOrderNo}} / {{item.customerName}}"
-    extra="{{item.status}}"
+    extra="{{item.statusText}}"
     extraTone="{{item.statusTone}}"
     clickable
     data-id="{{item.id}}"
     bind:cardtap="onTapDetail"
   >
-    <view class="row"><text class="label">Sales Order</text><text class="value">{{item.salesOrderNo}}</text></view>
-    <view class="row"><text class="label">Order Status</text><text class="value">{{item.orderStatus}}</text></view>
-    <view class="row"><text class="label">AR Status</text><text class="value">{{item.arStatus}}</text></view>
-    <view class="row"><text class="label">Planned Qty</text><text class="value">{{item.plannedQty}}</text></view>
-    <view class="row"><text class="label">Final Qty</text><text class="value">{{item.finalTotalQty}}</text></view>
+    <view class="row"><text class="label">销售订单</text><text class="value">{{item.salesOrderNo}}</text></view>
+    <view class="row"><text class="label">订单状态</text><text class="value">{{item.orderStatusText}}</text></view>
+    <view class="row"><text class="label">应收状态</text><text class="value">{{item.arStatusText}}</text></view>
+    <view class="row"><text class="label">计划吨数</text><text class="value">{{item.plannedQty}}</text></view>
+    <view class="row"><text class="label">最终吨数</text><text class="value">{{item.finalTotalQty}}</text></view>
     <view class="row">
-      <text class="label">Delta</text>
+      <text class="label">差异</text>
       <sl-status-tag text="{{item.deltaQty}}" type="{{item.diffTone}}" />
     </view>
     <view class="actions">
-      <sl-button class="btn" text="Detail" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
+      <sl-button class="btn" text="详情" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
     </view>
   </sl-business-card>
 
   <sl-bottom-action-bar
     slot="footer"
-    primaryText="Pending Finance Actions"
+    primaryText="财务待办"
     bind:primarytap="onTapPending"
   />
 </sl-page-shell>

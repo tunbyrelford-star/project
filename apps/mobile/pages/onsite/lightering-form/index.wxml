@@ -1,0 +1,111 @@
+<sl-page-shell
+  title="{{mode === 'create' ? 'Create Lightering' : 'Edit Lightering'}}"
+  subtitle="{{mode === 'create' ? 'Fill lightering operation data and submit' : 'Update lightering operation data'}}"
+  loading="{{loading}}"
+  showError="{{showError}}"
+  bind:retry="onRetry"
+>
+  <sl-business-card title="Basic Info">
+    <view class="form-row">
+      <text class="form-label">Voyage *</text>
+      <picker mode="selector" range="{{voyageOptions}}" range-key="voyageNo" value="{{voyageIndex}}" bindchange="onVoyageChange">
+        <view class="picker-value">
+          {{voyageIndex >= 0 ? (voyageOptions[voyageIndex].voyageNo + ' / ' + voyageOptions[voyageIndex].shipName) : 'Please select voyage'}}
+        </view>
+      </picker>
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">Lightering Status</text>
+      <picker mode="selector" range="{{statusOptions}}" range-key="label" value="{{statusIndex}}" bindchange="onStatusChange">
+        <view class="picker-value">{{statusOptions[statusIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">Lightering Time</text>
+      <input class="form-input" value="{{form.lighteringTime}}" data-field="lighteringTime" bindinput="onInput" />
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">Lightering Location</text>
+      <input class="form-input" value="{{form.lighteringLocation}}" data-field="lighteringLocation" bindinput="onInput" placeholder="Please input location" />
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">Lightering Port</text>
+      <input class="form-input" value="{{form.lighteringPort}}" data-field="lighteringPort" bindinput="onInput" placeholder="Please input port or terminal" />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="Lightering Info">
+    <view class="form-row">
+      <text class="form-label">Transfer Type</text>
+      <picker mode="selector" range="{{transferTypeOptions}}" range-key="label" value="{{transferTypeIndex}}" bindchange="onTransferTypeChange">
+        <view class="picker-value">{{transferTypeOptions[transferTypeIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">Receiver Type</text>
+      <picker mode="selector" range="{{receiverTypeOptions}}" range-key="label" value="{{receiverTypeIndex}}" bindchange="onReceiverTypeChange">
+        <view class="picker-value">{{receiverTypeOptions[receiverTypeIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">Receiver Ship</text>
+      <input class="form-input" value="{{form.receiverShipName}}" data-field="receiverShipName" bindinput="onInput" placeholder="Please input receiver ship" />
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">Cargo Name</text>
+      <input class="form-input" value="{{form.cargoName}}" data-field="cargoName" bindinput="onInput" placeholder="Default: Sand" />
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">Receiver Manager</text>
+      <input class="form-input" value="{{form.receiverName}}" data-field="receiverName" bindinput="onInput" placeholder="Please input receiver manager" />
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">Lightering Qty *</text>
+      <input class="form-input" type="digit" value="{{form.lighteringQty}}" data-field="lighteringQty" bindinput="onInput" placeholder="Please input lightering qty" />
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">Operator</text>
+      <input class="form-input" value="{{form.operatorName}}" data-field="operatorName" bindinput="onInput" placeholder="Please input operator" />
+    </view>
+  </sl-business-card>
+
+  <sl-business-card title="Attachments and Remark">
+    <view class="form-row">
+      <sl-attachment-uploader
+        title="Upload Attachments"
+        maxCount="{{6}}"
+        accept="image"
+        value="{{attachmentFiles}}"
+        bind:change="onAttachmentChange"
+      />
+    </view>
+
+    <view class="form-row">
+      <text class="form-label">Remark</text>
+      <input class="form-input" value="{{form.remark}}" data-field="remark" bindinput="onInput" placeholder="Optional handover notes" />
+    </view>
+  </sl-business-card>
+
+  <sl-bottom-action-bar
+    slot="footer"
+    secondaryText="Save Draft"
+    secondaryType="secondary"
+    secondaryDisabled="{{saving || !editable}}"
+    secondaryLoading="{{saving}}"
+    bind:secondarytap="onSaveDraft"
+    primaryText="{{mode === 'create' ? 'Submit and Start' : 'Save Changes'}}"
+    primaryLoading="{{saving}}"
+    primaryDisabled="{{saving || !editable}}"
+    bind:primarytap="onSubmit"
+  />
+</sl-page-shell>

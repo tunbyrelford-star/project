@@ -67,11 +67,14 @@
 
 .action-row {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 12rpx;
   margin-top: 8rpx;
 }
 
 .mini-link {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   margin: 0;
 }

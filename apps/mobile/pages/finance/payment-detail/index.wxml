@@ -1,47 +1,47 @@
 <sl-page-shell
-  title="Payment Detail"
+  title="收款详情"
   subtitle="{{detail.paymentNo || ''}}"
   loading="{{loading}}"
   showError="{{showError}}"
   bind:retry="onRetry"
 >
-  <sl-business-card title="Payment Info">
-    <view class="row"><text class="label">Payment No</text><text class="value">{{detail.paymentNo || '-'}}</text></view>
-    <view class="row"><text class="label">Status</text><text class="value">{{detail.status || '-'}}</text></view>
-    <view class="row"><text class="label">Sales Order</text><text class="value">{{detail.salesOrderNo || '-'}}</text></view>
-    <view class="row"><text class="label">Customer</text><text class="value">{{detail.customerName || '-'}}</text></view>
-    <view class="row"><text class="label">AR Status</text><text class="value">{{detail.arStatus || '-'}}</text></view>
-    <view class="row"><text class="label">Amount</text><text class="value">{{detail.paymentAmount || '-'}}</text></view>
-    <view class="row"><text class="label">Method</text><text class="value">{{detail.paymentMethod || '-'}}</text></view>
-    <view class="row"><text class="label">Type</text><text class="value">{{detail.isReversal ? 'REVERSAL' : 'NORMAL'}}</text></view>
-    <view class="row"><text class="label">Paid At</text><text class="value">{{detail.paidAt || '-'}}</text></view>
-    <view class="row"><text class="label">Remark</text><text class="value">{{detail.remark || '-'}}</text></view>
+  <sl-business-card title="收款信息">
+    <view class="row"><text class="label">收款单号</text><text class="value">{{detail.paymentNo || '-'}}</text></view>
+    <view class="row"><text class="label">状态</text><text class="value">{{detail.statusText || '-'}}</text></view>
+    <view class="row"><text class="label">销售订单</text><text class="value">{{detail.salesOrderNo || '-'}}</text></view>
+    <view class="row"><text class="label">客户</text><text class="value">{{detail.customerName || '-'}}</text></view>
+    <view class="row"><text class="label">应收状态</text><text class="value">{{detail.arStatusText || '-'}}</text></view>
+    <view class="row"><text class="label">金额</text><text class="value">{{detail.paymentAmount || '-'}}</text></view>
+    <view class="row"><text class="label">收款方式</text><text class="value">{{detail.paymentMethodText || '-'}}</text></view>
+    <view class="row"><text class="label">类型</text><text class="value">{{detail.typeText || '-'}}</text></view>
+    <view class="row"><text class="label">收款时间</text><text class="value">{{detail.paidAt || '-'}}</text></view>
+    <view class="row"><text class="label">备注</text><text class="value">{{detail.remark || '-'}}</text></view>
   </sl-business-card>
 
-  <sl-business-card title="Receipt Summary">
-    <view class="row"><text class="label">Incoming Amount</text><text class="value">{{receipt.incomingAmount || 0}}</text></view>
-    <view class="row"><text class="label">Reversed Amount</text><text class="value">{{receipt.reversedAmount || 0}}</text></view>
-    <view class="row"><text class="label">Net Confirmed</text><text class="value">{{receipt.netConfirmedAmount || 0}}</text></view>
-    <view class="row"><text class="label">Outstanding</text><text class="value">{{receipt.outstandingAmount || 0}}</text></view>
-    <view class="row"><text class="label">Receipt Status</text><text class="value">{{receipt.receiptStatus || '-'}}</text></view>
+  <sl-business-card title="收款汇总">
+    <view class="row"><text class="label">入账金额</text><text class="value">{{receipt.incomingAmount || 0}}</text></view>
+    <view class="row"><text class="label">冲正金额</text><text class="value">{{receipt.reversedAmount || 0}}</text></view>
+    <view class="row"><text class="label">净确认金额</text><text class="value">{{receipt.netConfirmedAmount || 0}}</text></view>
+    <view class="row"><text class="label">未收金额</text><text class="value">{{receipt.outstandingAmount || 0}}</text></view>
+    <view class="row"><text class="label">收款状态</text><text class="value">{{receipt.receiptStatusText || '-'}}</text></view>
   </sl-business-card>
 
-  <sl-business-card title="Reverse by Offset">
+  <sl-business-card title="冲正处理">
     <view class="warn">
-      Confirmed payment cannot be revoked. You can only reverse by creating an offset record.
+      已确认收款不可撤销，仅可通过新增冲正记录进行处理。
     </view>
     <view class="form-row">
-      <text class="form-label">Reversal Reason</text>
+      <text class="form-label">冲正原因</text>
       <textarea
         class="reason-input"
         maxlength="255"
         value="{{reversalReason}}"
         bindinput="onReasonInput"
-        placeholder="Input reversal reason"
+        placeholder="请输入冲正原因"
       />
     </view>
     <sl-button
-      text="Reverse This Payment"
+      text="冲正本笔收款"
       type="danger"
       size="small"
       loading="{{reversing}}"
@@ -50,16 +50,16 @@
     />
   </sl-business-card>
 
-  <sl-business-card title="Audit">
+  <sl-business-card title="审计记录">
     <sl-audit-timeline items="{{audits}}" />
   </sl-business-card>
 
   <sl-bottom-action-bar
     slot="footer"
-    secondaryText="Payment List"
+    secondaryText="返回列表"
     secondaryType="secondary"
     bind:secondarytap="onToList"
-    primaryText="Open Payment Confirm Page"
+    primaryText="前往收款确认页"
     bind:primarytap="onGoConfirmPage"
   />
 </sl-page-shell>

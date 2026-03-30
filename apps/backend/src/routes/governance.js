@@ -337,12 +337,22 @@ async function createSettlementVersionFromApproval(conn, approval, actorUserId) 
 
   if (approval.target_entity_type === "STOCK_IN") {
     const [stockRows] = await conn.query(
-      `SELECT id, batch_id, version_no, confirmed_qty, stock_in_time
-         FROM stock_ins
-        WHERE id = ?
-          AND is_void = 0
-        LIMIT 1
-        FOR UPDATE`,
+      `SELECT
+         si.id,
+         si.batch_id,
+         si.version_no,
+         si.confirmed_qty,
+         si.stock_in_time,
+         COALESCE(si.voyage_id, b.voyage_id) AS voyage_id,
+         COALESCE(si.procurement_id, v.procurement_id) AS procurement_id,
+         b.available_qty AS batch_available_qty
+       FROM stock_ins si
+       JOIN inventory_batches b ON b.id = si.batch_id AND b.is_void = 0
+       JOIN voyages v ON v.id = b.voyage_id AND v.is_void = 0
+      WHERE si.id = ?
+        AND si.is_void = 0
+      LIMIT 1
+      FOR UPDATE`,
       [approval.target_entity_id]
     );
     if (stockRows.length) {
@@ -355,25 +365,52 @@ async function createSettlementVersionFromApproval(conn, approval, actorUserId) 
       const stockInNo = generateNo("STI");
       const evidenceUrls = parseJsonArray(afterSnapshot.evidenceUrls);
       const remark = afterSnapshot.remark ? String(afterSnapshot.remark) : "APPROVED_ADJUST";
+      const beforeQty = afterSnapshot.beforeQty != null
+        ? toFixedNum(afterSnapshot.beforeQty, 3)
+        : toFixedNum(baseStock.batch_available_qty, 3);
+      const afterQty = afterSnapshot.afterQty != null
+        ? toFixedNum(afterSnapshot.afterQty, 3)
+        : nextQty;
+      const operatorName = afterSnapshot.operatorName
+        ? String(afterSnapshot.operatorName)
+        : `User#${actorUserId}`;
 
       await conn.query(
         `INSERT INTO stock_ins
-          (stock_in_no, batch_id, version_no, confirmed_qty, stock_in_time, status, evidence_urls, remark,
+          (stock_in_no, batch_id, voyage_id, procurement_id, version_no, confirmed_qty, before_qty, after_qty,
+           stock_in_time, status, evidence_urls, voucher_attachments, remark, operator_id, operator_name,
            confirmed_by, approval_id, created_at, updated_at, created_by, updated_by, is_void)
-         VALUES (?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?, ?, NOW(), NOW(), ?, ?, 0)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?, ?, 0)`,
         [
           stockInNo,
           baseStock.batch_id,
+          baseStock.voyage_id,
+          baseStock.procurement_id,
           nextVersionNo,
           nextQty,
+          beforeQty,
+          afterQty,
           nextTime,
           JSON.stringify(evidenceUrls),
+          JSON.stringify(evidenceUrls),
           remark,
+          actorUserId,
+          operatorName,
           actorUserId,
           approval.id,
           actorUserId,
           actorUserId
         ]
+      );
+
+      await conn.query(
+        `UPDATE inventory_batches
+            SET stock_in_confirmed_at = ?,
+                stock_in_confirmed_by = ?,
+                updated_at = NOW(),
+                updated_by = ?
+          WHERE id = ?`,
+        [nextTime, actorUserId, actorUserId, baseStock.batch_id]
       );
     }
   }

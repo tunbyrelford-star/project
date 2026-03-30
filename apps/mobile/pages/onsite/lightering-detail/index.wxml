@@ -1,42 +1,42 @@
 <sl-page-shell
-  title="Lightering Detail"
+  title="过驳详情"
   subtitle="{{detail.lighteringNo || ''}}"
   loading="{{loading}}"
   showError="{{showError}}"
   bind:retry="onRetry"
 >
-  <sl-business-card title="Basic Info">
-    <view class="row"><text class="label">Order No</text><text class="value">{{detail.lighteringNo || '-'}}</text></view>
-    <view class="row"><text class="label">Status</text><text class="value">{{detail.status || '-'}}</text></view>
-    <view class="row"><text class="label">Voyage</text><text class="value">{{detail.voyageNo || '-'}}</text></view>
-    <view class="row"><text class="label">Ship</text><text class="value">{{detail.shipName || '-'}}</text></view>
-    <view class="row"><text class="label">Main Ship Empty</text><text class="value">{{detail.isMainShipEmpty ? 'Yes' : 'No'}}</text></view>
-    <view class="row"><text class="label">Started At</text><text class="value">{{detail.startedAt || '-'}}</text></view>
-    <view class="row"><text class="label">Confirmed At</text><text class="value">{{detail.confirmedAt || '-'}}</text></view>
-    <view class="row"><text class="label">Note</text><text class="value">{{detail.emptyConfirmNote || '-'}}</text></view>
+  <sl-business-card title="基础信息">
+    <view class="row"><text class="label">单号</text><text class="value">{{detail.lighteringNo || '-'}}</text></view>
+    <view class="row"><text class="label">状态</text><text class="value">{{detail.statusText || '-'}}</text></view>
+    <view class="row"><text class="label">航次</text><text class="value">{{detail.voyageNo || '-'}}</text></view>
+    <view class="row"><text class="label">船名</text><text class="value">{{detail.shipName || '-'}}</text></view>
+    <view class="row"><text class="label">主船卸空</text><text class="value">{{detail.unloadText || '-'}}</text></view>
+    <view class="row"><text class="label">开始时间</text><text class="value">{{detail.startedAt || '-'}}</text></view>
+    <view class="row"><text class="label">确认时间</text><text class="value">{{detail.confirmedAt || '-'}}</text></view>
+    <view class="row"><text class="label">备注</text><text class="value">{{detail.emptyConfirmNote || '-'}}</text></view>
   </sl-business-card>
 
-  <sl-business-card title="Line Items">
-    <view wx:if="{{!items.length}}" class="empty">No line items</view>
+  <sl-business-card title="明细项">
+    <view wx:if="{{!items.length}}" class="empty">暂无明细</view>
     <view wx:for="{{items}}" wx:key="id" class="line-item">
-      <view class="line-title">Line {{item.lineNo}} / {{item.cargoName}}</view>
-      <view class="row"><text class="label">Transfer Qty</text><text class="value">{{item.transferQty}}</text></view>
-      <view class="row"><text class="label">Receiver</text><text class="value">{{item.receiverName || '-'}}</text></view>
-      <view class="row"><text class="label">Receiver Ship</text><text class="value">{{item.receiverShipName || '-'}}</text></view>
-      <view class="row"><text class="label">Status</text><text class="value">{{item.status}}</text></view>
+      <view class="line-title">明细 {{item.lineNo}} / {{item.cargoName || '-'}}</view>
+      <view class="row"><text class="label">过驳吨数</text><text class="value">{{item.transferQty}}</text></view>
+      <view class="row"><text class="label">接收方</text><text class="value">{{item.receiverName || '-'}}</text></view>
+      <view class="row"><text class="label">接收船舶</text><text class="value">{{item.receiverShipName || '-'}}</text></view>
+      <view class="row"><text class="label">状态</text><text class="value">{{item.status}}</text></view>
     </view>
   </sl-business-card>
 
-  <sl-business-card title="Audit">
+  <sl-business-card title="审计记录">
     <sl-audit-timeline items="{{audits}}" />
   </sl-business-card>
 
   <sl-bottom-action-bar
     slot="footer"
-    secondaryText="Order List"
+    secondaryText="返回列表"
     secondaryType="secondary"
     bind:secondarytap="onToList"
-    primaryText="{{detail.canConfirmEmpty ? 'Confirm Empty' : 'View Voyage'}}"
+    primaryText="{{detail.canConfirmEmpty ? '确认卸空' : '查看航次'}}"
     primaryLoading="{{confirming}}"
     bind:primarytap="onPrimaryAction"
   />

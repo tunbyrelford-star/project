@@ -1,43 +1,43 @@
 <sl-page-shell
-  title="Stock-In Detail"
+  title="入库单详情"
   subtitle="{{detail.stockInNo || ''}}"
   loading="{{loading}}"
   showError="{{showError}}"
   bind:retry="onRetry"
 >
-  <sl-business-card title="Stock-In Info">
-    <view class="row"><text class="label">Stock-In No</text><text class="value">{{detail.stockInNo || '-'}}</text></view>
-    <view class="row"><text class="label">Status</text><text class="value">{{detail.status || '-'}}</text></view>
-    <view class="row"><text class="label">Batch</text><text class="value">{{detail.batchNo || '-'}}</text></view>
-    <view class="row"><text class="label">Voyage</text><text class="value">{{detail.voyageNo || '-'}}</text></view>
-    <view class="row"><text class="label">Ship</text><text class="value">{{detail.shipName || '-'}}</text></view>
-    <view class="row"><text class="label">Confirmed Qty</text><text class="value">{{detail.confirmedQty || '-'}}</text></view>
-    <view class="row"><text class="label">Available Qty</text><text class="value">{{detail.availableQty || '-'}}</text></view>
-    <view class="row"><text class="label">Stock-In Confirmed</text><text class="value">{{detail.stockInConfirmed ? 'Yes' : 'No'}}</text></view>
-    <view class="row"><text class="label">Version</text><text class="value">v{{detail.versionNo || '-'}}</text></view>
-    <view class="row"><text class="label">Stock-In Time</text><text class="value">{{detail.stockInTime || '-'}}</text></view>
-    <view class="row"><text class="label">Remark</text><text class="value">{{detail.remark || '-'}}</text></view>
+  <sl-business-card title="入库信息">
+    <view class="row"><text class="label">入库单号</text><text class="value">{{detail.stockInNo || '-'}}</text></view>
+    <view class="row"><text class="label">状态</text><text class="value">{{detail.statusText || '-'}}</text></view>
+    <view class="row"><text class="label">批次</text><text class="value">{{detail.batchNo || '-'}}</text></view>
+    <view class="row"><text class="label">航次</text><text class="value">{{detail.voyageNo || '-'}}</text></view>
+    <view class="row"><text class="label">船名</text><text class="value">{{detail.shipName || '-'}}</text></view>
+    <view class="row"><text class="label">确认吨数</text><text class="value">{{detail.confirmedQty || '-'}}</text></view>
+    <view class="row"><text class="label">可用吨数</text><text class="value">{{detail.availableQty || '-'}}</text></view>
+    <view class="row"><text class="label">可售状态</text><text class="value">{{detail.sellableText || '-'}}</text></view>
+    <view class="row"><text class="label">版本</text><text class="value">v{{detail.versionNo || '-'}}</text></view>
+    <view class="row"><text class="label">入库时间</text><text class="value">{{detail.stockInTime || '-'}}</text></view>
+    <view class="row"><text class="label">备注</text><text class="value">{{detail.remark || '-'}}</text></view>
   </sl-business-card>
 
-  <sl-business-card title="Evidence">
+  <sl-business-card title="凭证附件">
     <sl-attachment-uploader
-      title="Evidence Files"
+      title="凭证文件"
       readonly="{{true}}"
       maxCount="{{99}}"
       value="{{files}}"
     />
   </sl-business-card>
 
-  <sl-business-card title="Audit">
+  <sl-business-card title="审计记录">
     <sl-audit-timeline items="{{audits}}" />
   </sl-business-card>
 
   <sl-bottom-action-bar
     slot="footer"
-    secondaryText="Order List"
+    secondaryText="返回列表"
     secondaryType="secondary"
     bind:secondarytap="onToList"
-    primaryText="Open Confirm Page"
+    primaryText="前往入库确认页"
     bind:primarytap="onGoConfirm"
   />
 </sl-page-shell>

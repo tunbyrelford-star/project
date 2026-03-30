@@ -9,6 +9,14 @@ function toFixedNum(value, digits = 2) {
   return Number(toNum(value, 0).toFixed(digits));
 }
 
+function differenceLabel(status) {
+  const code = String(status || "").toUpperCase();
+  if (code === "NO_DIFF") return "无差异";
+  if (code === "PENDING_CONFIRM") return "待差异确认";
+  if (code === "CONFIRMED") return "差异已确认";
+  return code || "-";
+}
+
 Page({
   data: {
     orderId: 0,
@@ -61,6 +69,7 @@ Page({
     const finalQty = toFixedNum(slip.finalTotalQty, 3);
     const delta = toFixedNum(finalQty - planned, 3);
     const hasDiff = Math.abs(delta) > 0.0005;
+
     if (hasDiff && !String(this.data.diffConfirmNote || "").trim()) {
       wx.showToast({ title: "差异确认必须填写说明", icon: "none" });
       return;
@@ -69,8 +78,8 @@ Page({
     wx.showModal({
       title: "确认财务结算",
       content: hasDiff
-        ? "存在吨数差异，确认后将按 planned_qty 比例分摊并生成 FINAL_AR。"
-        : "确认后将生成 FINAL_AR，进入收款确认阶段。",
+        ? "存在吨数差异，确认后将按 planned_qty 比例分摊 final_total_qty。"
+        : "确认后将生成 FINAL_AR，并进入收款确认阶段。",
       confirmText: "确认",
       success: (modalRes) => {
         if (!modalRes.confirm) return;
@@ -104,8 +113,16 @@ Page({
         const actions = res.actions || {};
         this.setData({
           loading: false,
-          order,
-          effectiveSlip,
+          order: {
+            ...order,
+            differenceStatusText: differenceLabel(order.differenceStatus)
+          },
+          effectiveSlip: effectiveSlip
+            ? {
+                ...effectiveSlip,
+                differenceStatusText: differenceLabel(effectiveSlip.differenceStatus)
+              }
+            : null,
           lineItems,
           actions
         });

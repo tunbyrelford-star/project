@@ -2,7 +2,7 @@ const { listPendingConfirmOrders } = require("../../../services/finance");
 
 const ACTION_FILTERS = [
   { key: "ALL", label: "全部" },
-  { key: "ENTER_WEIGHING", label: "待录磅单" },
+  { key: "ENTER_WEIGHING", label: "待录入磅单" },
   { key: "FINANCE_CONFIRM", label: "待财务确认" },
   { key: "CONFIRM_PAYMENT", label: "待确认收款" }
 ];
@@ -18,6 +18,22 @@ function tagTypeByAction(action) {
   if (action === "FINANCE_CONFIRM") return "warning";
   if (action === "ENTER_WEIGHING") return "info";
   return "success";
+}
+
+function diffTypeByStatus(status) {
+  const code = String(status || "").toUpperCase();
+  if (code === "NO_DIFF") return "success";
+  if (code === "CONFIRMED") return "info";
+  if (code === "PENDING_CONFIRM") return "warning";
+  return "default";
+}
+
+function diffText(status) {
+  const code = String(status || "").toUpperCase();
+  if (code === "NO_DIFF") return "无差异";
+  if (code === "CONFIRMED") return "差异已确认";
+  if (code === "PENDING_CONFIRM") return "待差异确认";
+  return code || "-";
 }
 
 Page({
@@ -93,8 +109,8 @@ Page({
         const list = (res.items || []).map((item) => ({
           ...item,
           deltaQtyDisplay: item.deltaQty == null ? "-" : toFixedNum(item.deltaQty, 3),
-          diffText: item.diffFlag ? "存在差异" : "无差异",
-          diffType: item.diffFlag ? "warning" : "success",
+          diffText: diffText(item.differenceStatus),
+          diffType: diffTypeByStatus(item.differenceStatus),
           nextActionType: tagTypeByAction(item.nextAction)
         }));
         this.setData({

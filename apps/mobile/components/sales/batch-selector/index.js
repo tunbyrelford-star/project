@@ -140,9 +140,14 @@ Component({
           const list = (res.items || []).map((item) => {
             const selected = selectedMap[item.id];
             const lockQtyDefault = item.remainingQty > 0 ? Math.min(10, Number(item.remainingQty)) : 0;
+            const isSelected = Boolean(selected);
+            const isSelectable = Boolean(item.selectable);
             return {
               ...item,
-              selected: Boolean(selected),
+              selected: isSelected,
+              itemClass: isSelectable ? "batch-item" : "batch-item batch-item--disabled",
+              selectText: isSelected ? "已选" : "选择",
+              selectType: isSelected ? "primary" : "secondary",
               lockQtyDefault: selected ? toFixedNum(selected.lockQty, 3) : toFixedNum(lockQtyDefault, 3),
               qtyInput: selected ? toFixedNum(selected.lockQty, 3) : toFixedNum(lockQtyDefault, 3),
               statusType: item.selectable ? "success" : "warning"
@@ -165,9 +170,14 @@ Component({
       const selectedMap = this.data.selectedMap || {};
       const list = (this.data.list || []).map((item) => {
         const selected = selectedMap[item.id];
+        const isSelected = Boolean(selected);
+        const isSelectable = Boolean(item.selectable);
         return {
           ...item,
-          selected: Boolean(selected),
+          selected: isSelected,
+          itemClass: isSelectable ? "batch-item" : "batch-item batch-item--disabled",
+          selectText: isSelected ? "已选" : "选择",
+          selectType: isSelected ? "primary" : "secondary",
           qtyInput: selected ? toFixedNum(selected.lockQty, 3) : item.qtyInput
         };
       });

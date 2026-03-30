@@ -1,40 +1,40 @@
 <sl-page-shell
-  title="Expense Detail"
+  title="费用单详情"
   subtitle="{{detail.expenseNo || ''}}"
   loading="{{loading}}"
   showError="{{showError}}"
-  bind:retry="onRetry"
+  bindretry="onRetry"
 >
-  <sl-business-card title="Expense Info">
-    <view class="row"><text class="label">Expense No</text><text class="value">{{detail.expenseNo || '-'}}</text></view>
-    <view class="row"><text class="label">Status</text><text class="value">{{detail.status || '-'}}</text></view>
-    <view class="row"><text class="label">Voyage</text><text class="value">{{detail.voyageNo || '-'}}</text></view>
-    <view class="row"><text class="label">Ship</text><text class="value">{{detail.shipName || '-'}}</text></view>
-    <view class="row"><text class="label">Type</text><text class="value">{{detail.expenseType || '-'}}</text></view>
-    <view class="row"><text class="label">Amount</text><text class="value">{{detail.amountDisplay || '-'}}</text></view>
-    <view class="row"><text class="label">Occurred At</text><text class="value">{{detail.occurredAt || '-'}}</text></view>
-    <view class="row"><text class="label">Source Module</text><text class="value">{{detail.sourceModule || '-'}}</text></view>
+  <sl-business-card title="费用信息">
+    <view class="row"><text class="label">费用单号</text><text class="value">{{detail.expenseNo || '-'}}</text></view>
+    <view class="row"><text class="label">状态</text><text class="value">{{detail.statusText || '-'}}</text></view>
+    <view class="row"><text class="label">航次</text><text class="value">{{detail.voyageNo || '-'}}</text></view>
+    <view class="row"><text class="label">船名</text><text class="value">{{detail.shipName || '-'}}</text></view>
+    <view class="row"><text class="label">费用类型</text><text class="value">{{detail.expenseTypeText || '-'}}</text></view>
+    <view class="row"><text class="label">金额</text><text class="value">{{detail.amountDisplay || '-'}}</text></view>
+    <view class="row"><text class="label">发生时间</text><text class="value">{{detail.occurredAtText || '-'}}</text></view>
+    <view class="row"><text class="label">来源模块</text><text class="value">{{detail.sourceModuleText || '-'}}</text></view>
   </sl-business-card>
 
-  <sl-business-card title="Vouchers">
+  <sl-business-card title="凭证">
     <sl-attachment-uploader
-      title="Voucher Files"
+      title="凭证文件"
       readonly="{{true}}"
       maxCount="{{99}}"
       value="{{files}}"
     />
   </sl-business-card>
 
-  <sl-business-card title="Audit">
+  <sl-business-card title="审计记录">
     <sl-audit-timeline items="{{audits}}" />
   </sl-business-card>
 
   <sl-bottom-action-bar
     slot="footer"
-    secondaryText="Order List"
+    secondaryText="费用单列表"
     secondaryType="secondary"
-    bind:secondarytap="onToList"
-    primaryText="Create Expense"
-    bind:primarytap="onCreateWithVoyage"
+    bindsecondarytap="onToList"
+    primaryText="新建费用单"
+    bindprimarytap="onCreateWithVoyage"
   />
 </sl-page-shell>

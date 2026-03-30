@@ -1,4 +1,4 @@
-const { listOnsiteTasks, confirmLighteringEmpty } = require("../../../services/onsite");
+const { listOnsiteTasks } = require("../../../services/onsite");
 
 const FILTER_TEMPLATE = [
   { key: "ALL", label: "全部" },
@@ -15,10 +15,10 @@ function urgencyTagType(level) {
   return "success";
 }
 
-function stepTagType(step) {
-  if (step === "待处理异常") return "danger";
-  if (step === "待卸空") return "warning";
-  if (step === "待入库确认") return "info";
+function stepTagType(taskType) {
+  if (taskType === "WAIT_EXCEPTION") return "danger";
+  if (taskType === "WAIT_EMPTY_CONFIRM") return "warning";
+  if (taskType === "WAIT_STOCK_IN") return "info";
   return "default";
 }
 
@@ -60,40 +60,36 @@ Page({
   onRetry() {
     this.loadTasks();
   },
+
   onTapAction(event) {
     const dataset = event.currentTarget.dataset || {};
     const taskType = String(dataset.taskType || "");
     const taskId = Number(dataset.taskId || 0);
     const batchId = Number(dataset.batchId || 0);
     const voyageId = Number(dataset.voyageId || 0);
-    const taskKey = String(dataset.taskKey || "");
     if (!taskType) return;
 
     if (taskType === "WAIT_EMPTY_CONFIRM") {
-      if (!taskId) {
-        wx.showToast({ title: "Missing task params", icon: "none" });
+      if (taskId) {
+        wx.navigateTo({ url: `/pages/onsite/lightering-detail/index?id=${taskId}` });
         return;
       }
-      if (this.data.actionTaskKey) return;
+      wx.navigateTo({ url: "/pages/onsite/lightering-list/index?status=IN_PROGRESS" });
+      return;
+    }
 
-      this.setData({ actionTaskKey: taskKey || `${taskType}-${taskId}` });
-      confirmLighteringEmpty(taskId, { note: "Mobile confirm empty" })
-        .then((res) => {
-          wx.showToast({ title: res.message || "Confirmed", icon: "none" });
-          this.loadTasks();
-        })
-        .catch((err) => {
-          wx.showToast({ title: err.message || "Operation failed", icon: "none" });
-        })
-        .finally(() => {
-          this.setData({ actionTaskKey: "" });
-        });
+    if (taskType === "WAIT_LIGHTERING") {
+      if (taskId) {
+        wx.navigateTo({ url: `/pages/onsite/lightering-detail/index?id=${taskId}` });
+        return;
+      }
+      wx.navigateTo({ url: "/pages/onsite/lightering-list/index" });
       return;
     }
 
     if (taskType === "WAIT_STOCK_IN") {
       if (!batchId) {
-        wx.showToast({ title: "Missing batchId", icon: "none" });
+        wx.showToast({ title: "缺少批次ID", icon: "none" });
         return;
       }
       wx.navigateTo({ url: `/pages/onsite/stockin-confirm/index?batchId=${batchId}` });
@@ -102,7 +98,7 @@ Page({
 
     if (taskType === "WAIT_EXPENSE") {
       if (!voyageId) {
-        wx.showToast({ title: "Missing voyageId", icon: "none" });
+        wx.showToast({ title: "缺少航次ID", icon: "none" });
         return;
       }
       wx.navigateTo({ url: `/pages/onsite/expense-create/index?voyageId=${voyageId}` });
@@ -110,11 +106,11 @@ Page({
     }
 
     if (taskType === "WAIT_EXCEPTION") {
-      wx.navigateTo({ url: "/pages/alerts/alerts" });
+      wx.navigateTo({ url: "/pages/alerts/index" });
       return;
     }
 
-    wx.showToast({ title: "Please handle onsite lightering", icon: "none" });
+    wx.showToast({ title: "请处理现场任务", icon: "none" });
   },
 
   loadTasks() {
@@ -143,7 +139,7 @@ Page({
           taskKey: `${item.taskType || "TASK"}-${item.taskId || Math.random()}`,
           urgencyText: toUrgencyText(item.urgency),
           urgencyType: urgencyTagType(item.urgency),
-          stepType: stepTagType(item.currentStep),
+          stepType: stepTagType(item.taskType),
           statusText: item.statusTag || "-"
         }));
 
@@ -156,7 +152,7 @@ Page({
       .catch((error) => {
         const statusCode = Number((error && error.statusCode) || 0);
         const message = statusCode === 403
-          ? "当前角色无权限访问现场待办"
+          ? "当前角色无现场待办查看权限"
           : ((error && error.message) || "加载失败，请重试");
         this.setData({
           loading: false,

@@ -1,43 +1,44 @@
 <sl-page-shell
-  title="Weighing Slip Detail"
+  title="磅单详情"
   subtitle="{{detail.slipNo || ''}}"
   loading="{{loading}}"
   showError="{{showError}}"
   bind:retry="onRetry"
 >
-  <sl-business-card title="Slip Info">
-    <view class="row"><text class="label">Slip No</text><text class="value">{{detail.slipNo || '-'}}</text></view>
-    <view class="row"><text class="label">Status</text><text class="value">{{detail.status || '-'}}</text></view>
-    <view class="row"><text class="label">Sales Order</text><text class="value">{{detail.salesOrderNo || '-'}}</text></view>
-    <view class="row"><text class="label">Customer</text><text class="value">{{detail.customerName || '-'}}</text></view>
-    <view class="row"><text class="label">Planned Qty</text><text class="value">{{detail.plannedQty || '-'}}</text></view>
-    <view class="row"><text class="label">Final Qty</text><text class="value">{{detail.finalTotalQty || '-'}}</text></view>
-    <view class="row"><text class="label">Delta</text><text class="value">{{detail.deltaQty || '-'}}</text></view>
-    <view class="row"><text class="label">Confirmed At</text><text class="value">{{detail.confirmedAt || '-'}}</text></view>
-    <view class="row"><text class="label">Remark</text><text class="value">{{detail.remark || '-'}}</text></view>
+  <sl-business-card title="磅单信息">
+    <view class="row"><text class="label">磅单号</text><text class="value">{{detail.slipNo || '-'}}</text></view>
+    <view class="row"><text class="label">状态</text><text class="value">{{detail.statusText || '-'}}</text></view>
+    <view class="row"><text class="label">销售订单</text><text class="value">{{detail.salesOrderNo || '-'}}</text></view>
+    <view class="row"><text class="label">客户</text><text class="value">{{detail.customerName || '-'}}</text></view>
+    <view class="row"><text class="label">计划吨数</text><text class="value">{{detail.plannedQty || '-'}}</text></view>
+    <view class="row"><text class="label">最终吨数</text><text class="value">{{detail.finalTotalQty || '-'}}</text></view>
+    <view class="row"><text class="label">差异吨数</text><text class="value">{{detail.deltaQty || '-'}}</text></view>
+    <view class="row"><text class="label">差异状态</text><text class="value">{{detail.differenceText || '-'}}</text></view>
+    <view class="row"><text class="label">确认时间</text><text class="value">{{detail.confirmedAt || '-'}}</text></view>
+    <view class="row"><text class="label">备注</text><text class="value">{{detail.remark || '-'}}</text></view>
   </sl-business-card>
 
-  <sl-business-card title="Slip Line Items">
-    <view wx:if="{{!items.length}}" class="empty">No weighing line items</view>
+  <sl-business-card title="磅单明细">
+    <view wx:if="{{!items.length}}" class="empty">暂无磅单明细</view>
     <view wx:for="{{items}}" wx:key="id" class="line-item">
-      <view class="line-title">Line {{item.lineNo}} / {{item.truckNo || '-'}}</view>
-      <view class="row"><text class="label">Gross Qty</text><text class="value">{{item.grossQty}}</text></view>
-      <view class="row"><text class="label">Tare Qty</text><text class="value">{{item.tareQty}}</text></view>
-      <view class="row"><text class="label">Net Qty</text><text class="value">{{item.netQty}}</text></view>
-      <view class="row"><text class="label">Status</text><text class="value">{{item.status}}</text></view>
+      <view class="line-title">明细 {{item.lineNo}} / {{item.truckNo || '-'}}</view>
+      <view class="row"><text class="label">毛重</text><text class="value">{{item.grossQty}}</text></view>
+      <view class="row"><text class="label">皮重</text><text class="value">{{item.tareQty}}</text></view>
+      <view class="row"><text class="label">净重</text><text class="value">{{item.netQty}}</text></view>
+      <view class="row"><text class="label">状态</text><text class="value">{{item.status}}</text></view>
     </view>
   </sl-business-card>
 
-  <sl-business-card title="Audit">
+  <sl-business-card title="审计记录">
     <sl-audit-timeline items="{{audits}}" />
   </sl-business-card>
 
   <sl-bottom-action-bar
     slot="footer"
-    secondaryText="Slip List"
+    secondaryText="返回列表"
     secondaryType="secondary"
     bind:secondarytap="onToList"
-    primaryText="Open Weighing Entry"
+    primaryText="前往磅单录入"
     bind:primarytap="onGoEntry"
   />
 </sl-page-shell>

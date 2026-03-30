@@ -20,6 +20,7 @@
   font-size: var(--sl-font-size-sm);
   text-align: right;
   max-width: 420rpx;
+  word-break: break-all;
 }
 
 .line-item {

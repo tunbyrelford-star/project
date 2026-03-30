@@ -24,6 +24,8 @@
 .actions {
   display: flex;
   gap: var(--sl-space-2);
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   padding-top: var(--sl-space-2);
 }

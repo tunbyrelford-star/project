@@ -1,10 +1,10 @@
 <sl-page-shell
-  title="Expense Orders"
-  subtitle="Voyage expense orders and amount visibility control"
+  title="费用单"
+  subtitle="航次费用单据与金额查看管理"
   loading="{{loading}}"
   showError="{{showError}}"
   showEmpty="{{!loading && !showError && !list.length}}"
-  emptyText="No expense orders"
+  emptyText="暂无费用单"
   bind:retry="onRetry"
 >
   <sl-top-filter-bar
@@ -12,7 +12,7 @@
     filters="{{filters}}"
     activeKey="{{activeStatus}}"
     showSearch="{{true}}"
-    searchPlaceholder="Expense no / Voyage / Ship"
+    searchPlaceholder="费用单号 / 航次号 / 船名"
     bind:change="onFilterChange"
     bind:search="onSearch"
   />
@@ -28,24 +28,24 @@
     wx:key="id"
     title="{{item.expenseNo}}"
     subtitle="{{item.voyageNo}} / {{item.shipName}}"
-    extra="{{item.status}}"
+    extra="{{item.statusText}}"
     extraTone="{{item.statusTone}}"
     clickable
     data-id="{{item.id}}"
     bind:cardtap="onTapDetail"
   >
-    <view class="row"><text class="label">Voyage</text><text class="value">{{item.voyageNo}}</text></view>
-    <view class="row"><text class="label">Expense Type</text><text class="value">{{item.expenseType}}</text></view>
-    <view class="row"><text class="label">Amount</text><text class="value">{{item.amountDisplay}}</text></view>
-    <view class="row"><text class="label">Occurred At</text><text class="value">{{item.occurredAt || '-'}}</text></view>
+    <view class="row"><text class="label">航次</text><text class="value">{{item.voyageNo}}</text></view>
+    <view class="row"><text class="label">费用类型</text><text class="value">{{item.expenseTypeText}}</text></view>
+    <view class="row"><text class="label">金额</text><text class="value">{{item.amountDisplay}}</text></view>
+    <view class="row"><text class="label">发生时间</text><text class="value">{{item.occurredAt || '-'}}</text></view>
     <view class="actions">
-      <sl-button class="btn" text="Detail" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
+      <sl-button class="btn" text="详情" type="secondary" size="small" data-id="{{item.id}}" bind:tap="onTapDetail" />
     </view>
   </sl-business-card>
 
   <sl-bottom-action-bar
     slot="footer"
-    primaryText="Create Expense"
+    primaryText="新增费用单"
     bind:primarytap="onTapCreate"
   />
 </sl-page-shell>

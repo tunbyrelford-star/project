@@ -10,12 +10,15 @@ const salesRoutes = require("./routes/sales");
 const financeRoutes = require("./routes/finance");
 const governanceRoutes = require("./routes/governance");
 const voyageRoutes = require("./routes/voyages");
+const fileRoutes = require("./routes/files");
+const path = require("path");
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
+app.use("/uploads", express.static(path.resolve(__dirname, "..", "uploads")));
 
 app.use("/api/auth", authRoutes);
 
@@ -64,6 +67,7 @@ app.use("/api/sales", salesRoutes);
 app.use("/api/finance", financeRoutes);
 app.use("/api/governance", governanceRoutes);
 app.use("/api/voyages", voyageRoutes);
+app.use("/api/files", fileRoutes);
 
 app.use((error, _req, res, _next) => {
   const status = error.status || 500;

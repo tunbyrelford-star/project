@@ -3,7 +3,7 @@
   subtitle="{{detail.procurement_no || ''}}"
   loading="{{loading}}"
   showError="{{showError}}"
-  bind:retry="onRetry"
+  bindretry="onRetry"
 >
   <sl-business-card title="基础信息">
     <view class="row"><text class="label">采购单号</text><text class="value">{{detail.procurement_no || '-'}}</text></view>
@@ -25,7 +25,7 @@
         type="secondary"
         size="small"
         disabled="{{!detail.voyage_id}}"
-        bind:tap="onViewVoyage"
+        bindtap="onViewVoyage"
       />
     </view>
   </sl-business-card>
@@ -35,6 +35,65 @@
     <view class="row"><text class="label">计划时长（分钟）</text><text class="value">{{detail.planned_duration_min || '-'}}</text></view>
   </sl-business-card>
 
+  <sl-business-card title="超时处理闭环">
+    <view class="row"><text class="label">是否超时</text><text class="value">{{timeoutInfo && timeoutInfo.isOvertime ? '是' : '否'}}</text></view>
+    <view class="row"><text class="label">已运行（分钟）</text><text class="value">{{timeoutInfo ? timeoutInfo.elapsedMinutes : 0}}</text></view>
+    <view class="row"><text class="label">超时（分钟）</text><text class="value">{{timeoutInfo ? timeoutInfo.overtimeMinutes : 0}}</text></view>
+    <view class="row"><text class="label">预警状态</text><text class="value">{{timeoutInfo && timeoutInfo.alertStatus ? timeoutInfo.alertStatus : '-'}}</text></view>
+    <view class="row"><text class="label">处理说明</text><text class="value">{{timeoutInfo && timeoutInfo.handleNote ? timeoutInfo.handleNote : '-'}}</text></view>
+
+    <view wx:if="{{timeoutInfo && timeoutInfo.latestExpense}}" class="timeout-expense-box">
+      <view class="row"><text class="label">超时费用单号</text><text class="value">{{timeoutInfo.latestExpense.expenseNo || '-'}}</text></view>
+      <view class="row"><text class="label">费用金额</text><text class="value">{{timeoutInfo.latestExpense.amount || 0}}</text></view>
+      <view class="row"><text class="label">费用状态</text><text class="value">{{timeoutInfo.latestExpense.status || '-'}}</text></view>
+      <view class="row"><text class="label">计费说明</text><text class="value">{{timeoutInfo.latestExpense.calculationNote || '-'}}</text></view>
+    </view>
+
+    <view wx:if="{{timeoutInfo && timeoutInfo.isOvertime && !timeoutInfo.hasOvertimeExpense}}" class="timeout-form-toggle">
+      <sl-button
+        text="{{timeoutFormVisible ? '收起处理表单' : '去处理超时费用'}}"
+        type="secondary"
+        size="small"
+        bindtap="onToggleTimeoutForm"
+      />
+    </view>
+
+    <view wx:if="{{timeoutFormVisible && timeoutInfo && timeoutInfo.isOvertime && !timeoutInfo.hasOvertimeExpense}}" class="timeout-form">
+      <view class="row row-input">
+        <text class="label">计费方式</text>
+        <picker mode="selector" range="{{['按小时费率','人工金额']}}" value="{{timeoutForm.calcMode === 'MANUAL' ? 1 : 0}}" bindchange="onTimeoutModeChange">
+          <view class="picker-value">{{timeoutForm.calcMode === 'MANUAL' ? '人工金额' : '按小时费率'}}</view>
+        </picker>
+      </view>
+      <view wx:if="{{timeoutForm.calcMode === 'HOURLY_RATE'}}" class="row row-input">
+        <text class="label">费率（元/小时）</text>
+        <input class="form-input" type="digit" value="{{timeoutForm.ratePerHour}}" data-field="ratePerHour" bindinput="onTimeoutInput" placeholder="请输入费率" />
+      </view>
+      <view wx:if="{{timeoutForm.calcMode === 'MANUAL'}}" class="row row-input">
+        <text class="label">人工确认金额</text>
+        <input class="form-input" type="digit" value="{{timeoutForm.manualAmount}}" data-field="manualAmount" bindinput="onTimeoutInput" placeholder="请输入金额" />
+      </view>
+      <view class="row row-input">
+        <text class="label">处理说明</text>
+        <input class="form-input" value="{{timeoutForm.handlingNote}}" data-field="handlingNote" bindinput="onTimeoutInput" placeholder="请填写超时原因和处理说明" />
+      </view>
+      <view class="row row-input">
+        <text class="label">计算备注</text>
+        <input class="form-input" value="{{timeoutForm.calculationNote}}" data-field="calculationNote" bindinput="onTimeoutInput" placeholder="可选：补充计费规则说明" />
+      </view>
+      <view class="timeout-form-actions">
+        <sl-button
+          text="提交处理并生成费用"
+          type="primary"
+          size="small"
+          loading="{{timeoutSubmitting}}"
+          disabled="{{timeoutSubmitting}}"
+          bindtap="onHandleTimeout"
+        />
+      </view>
+    </view>
+  </sl-business-card>
+
   <sl-business-card title="附件资料">
     <view class="attach-tip">开始打砂前必须上传：采砂单 + 至少 1 张质量照片</view>
     <sl-attachment-uploader
@@ -42,7 +101,7 @@
       value="{{miningTicketFiles}}"
       maxCount="{{1}}"
       readonly="{{detail.status !== 'DISPATCHED' || startSandingLoading}}"
-      bind:change="onMiningTicketChange"
+      bindchange="onMiningTicketChange"
     />
     <view class="space"></view>
     <sl-attachment-uploader
@@ -51,7 +110,7 @@
       maxCount="{{4}}"
       accept="image"
       readonly="{{detail.status !== 'DISPATCHED' || startSandingLoading}}"
-      bind:change="onQualityPhotoChange"
+      bindchange="onQualityPhotoChange"
     />
   </sl-business-card>
 
@@ -71,7 +130,7 @@
         data-id="{{item.id}}"
         loading="{{closingAlertId === item.id}}"
         disabled="{{closingAlertId > 0 && closingAlertId !== item.id}}"
-        bind:tap="onCloseAlert"
+        bindtap="onCloseAlert"
       />
     </view>
   </sl-business-card>
@@ -85,10 +144,10 @@
     secondaryText="{{detail.voyage_id ? '航次详情' : ''}}"
     secondaryType="secondary"
     secondaryDisabled="{{!detail.voyage_id}}"
-    bind:secondarytap="onSecondaryAction"
+    bindsecondarytap="onSecondaryAction"
     primaryText="{{detail.status === 'DISPATCHED' ? '开始打砂' : (detail.status === 'SANDING' ? '检测超时' : '刷新详情')}}"
     primaryLoading="{{startSandingLoading || checkTimeoutLoading}}"
     primaryDisabled="{{startSandingLoading || checkTimeoutLoading}}"
-    bind:primarytap="onPrimaryAction"
+    bindprimarytap="onPrimaryAction"
   />
 </sl-page-shell>

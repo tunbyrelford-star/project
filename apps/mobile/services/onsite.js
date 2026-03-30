@@ -68,6 +68,22 @@ function getLighteringDetail(id) {
   });
 }
 
+function createLightering(payload) {
+  return request({
+    url: "/onsite/lighterings",
+    method: "POST",
+    data: payload
+  });
+}
+
+function updateLightering(id, payload) {
+  return request({
+    url: `/onsite/lighterings/${id}`,
+    method: "PUT",
+    data: payload
+  });
+}
+
 function listStockIns(params = {}) {
   return request({
     url: "/onsite/stockins",
@@ -108,6 +124,8 @@ module.exports = {
   createExpense,
   listLighterings,
   getLighteringDetail,
+  createLightering,
+  updateLightering,
   listStockIns,
   getStockInDetail,
   listExpenses,

@@ -29,9 +29,11 @@
 
 .action-bar__buttons--single > sl-button {
   width: 100%;
+  min-width: 0;
 }
 
 .action-bar__buttons--double > sl-button {
-  flex: 1;
+  flex: 1 1 0;
+  width: 0;
   min-width: 0;
 }
